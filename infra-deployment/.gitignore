@@ -1,0 +1,33 @@
+# Azure Developer CLI
+.azure/
+
+# Bicep build output
+*.bicep.json
+
+# Azure CLI / PowerShell
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Temporary files
+*.tmp
+temp/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Secrets and credentials
+secrets/
+*.pem
+*.key
+*.pfx

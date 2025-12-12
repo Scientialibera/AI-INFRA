@@ -1,0 +1,90 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "projectName": {
+      "value": "${PROJECT_NAME}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "environment": {
+      "value": "${ENVIRONMENT}"
+    },
+    "adminEmails": {
+      "value": "${ADMIN_EMAILS}"
+    },
+    "enableVNet": {
+      "value": "${ENABLE_VNET}"
+    },
+    "vnetAddressPrefix": {
+      "value": "${VNET_ADDRESS_PREFIX}"
+    },
+    "containerAppsSubnetPrefix": {
+      "value": "${CONTAINER_APPS_SUBNET_PREFIX}"
+    },
+    "privateEndpointSubnetPrefix": {
+      "value": "${PRIVATE_ENDPOINT_SUBNET_PREFIX}"
+    },
+    "sqlSubnetPrefix": {
+      "value": "${SQL_SUBNET_PREFIX}"
+    },
+    "enableOpenAI": {
+      "value": "${ENABLE_OPENAI}"
+    },
+    "enableCosmosDB": {
+      "value": "${ENABLE_COSMOSDB}"
+    },
+    "enableDataLake": {
+      "value": "${ENABLE_DATALAKE}"
+    },
+    "enableSQLDB": {
+      "value": "${ENABLE_SQLDB}"
+    },
+    "enableAISearch": {
+      "value": "${ENABLE_AISEARCH}"
+    },
+    "enableContainerApps": {
+      "value": "${ENABLE_CONTAINERAPPS}"
+    },
+    "enableContainerRegistry": {
+      "value": "${ENABLE_CONTAINERREGISTRY}"
+    },
+    "enableKeyVault": {
+      "value": "${ENABLE_KEYVAULT}"
+    },
+    "enableMonitoring": {
+      "value": "${ENABLE_MONITORING}"
+    },
+    "openAIDeployments": {
+      "value": "${OPENAI_DEPLOYMENTS}"
+    },
+    "cosmosEnableNoSQL": {
+      "value": "${COSMOS_ENABLE_NOSQL}"
+    },
+    "cosmosEnableGremlin": {
+      "value": "${COSMOS_ENABLE_GREMLIN}"
+    },
+    "cosmosConsistencyLevel": {
+      "value": "${COSMOS_CONSISTENCY_LEVEL}"
+    },
+    "sqlDatabaseSku": {
+      "value": "${SQL_DATABASE_SKU}"
+    },
+    "sqlAdminUsername": {
+      "value": "${SQL_ADMIN_USERNAME}"
+    },
+    "aiSearchSku": {
+      "value": "${AISEARCH_SKU}"
+    },
+    "containerRegistrySku": {
+      "value": "${CONTAINER_REGISTRY_SKU}"
+    },
+    "dataLakeSku": {
+      "value": "${DATALAKE_SKU}"
+    },
+    "tags": {
+      "value": "${TAGS}"
+    }
+  }
+}

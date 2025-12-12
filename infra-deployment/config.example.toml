@@ -1,0 +1,85 @@
+# Azure AI Landing Zone Configuration - EXAMPLE
+# Copy this file to config.toml and customize for your deployment
+
+[project]
+name = "myaiproject"
+# Azure regions for deployment (fallback order: left to right)
+# The deployment will try each region in order until it finds one that works
+# Common regions: eastus, westus2, westeurope, northeurope, southcentralus, centralus
+locations = ["eastus", "westus2", "westeurope"]
+environment = "dev"
+# Resource group name (will be created if it doesn't exist)
+# You can use {location} placeholder which will be replaced with the selected region
+resourceGroupName = "rg-myaiproject-dev-{location}"
+
+[admin]
+# Add your Azure AD user emails here - they will get full admin access
+emails = [
+    "admin@yourcompany.com"
+]
+
+[networking]
+enabled = true
+vnetAddressPrefix = "10.0.0.0/16"
+containerAppsSubnetPrefix = "10.0.0.0/23"
+privateEndpointSubnetPrefix = "10.0.2.0/24"
+sqlSubnetPrefix = "10.0.3.0/24"
+
+[services.openai]
+enabled = true
+sku = "S0"
+deployments = [
+    { name = "gpt-4", model = "gpt-4", version = "2024-05-13", capacity = 10 },
+    { name = "gpt-35-turbo", model = "gpt-35-turbo", version = "0613", capacity = 10 },
+    { name = "text-embedding-ada-002", model = "text-embedding-ada-002", version = "2", capacity = 10 }
+]
+
+[services.cosmosdb]
+enabled = true
+enableNoSQL = true
+enableGremlin = true
+consistencyLevel = "Session"
+automaticFailover = true
+
+[services.datalake]
+enabled = true
+sku = "Standard_LRS"
+isHnsEnabled = true
+
+[services.sqldb]
+enabled = true
+adminUsername = "sqladmin"
+databaseSku = "S1"
+enableAzureADAuth = true
+
+[services.aisearch]
+enabled = true
+sku = "standard"
+replicaCount = 1
+partitionCount = 1
+
+[services.containerApps]
+enabled = true
+enableWorkloadProfiles = false
+
+[services.containerRegistry]
+enabled = true
+sku = "Premium"
+adminUserEnabled = false
+
+[services.keyVault]
+enabled = true
+sku = "standard"
+enableRbacAuthorization = true
+enableSoftDelete = true
+softDeleteRetentionInDays = 90
+
+[services.monitoring]
+enabled = true
+retentionInDays = 30
+
+[tags]
+Environment = "Development"
+ManagedBy = "AzureDeveloperCLI"
+Project = "AI-LandingZone"
+CostCenter = "Engineering"

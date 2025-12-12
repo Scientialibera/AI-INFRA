@@ -1,0 +1,125 @@
+# Azure AI Landing Zone Configuration
+# This configuration file defines all settings for deploying an enterprise-grade AI infrastructure
+
+[project]
+# Project prefix - used for naming all resources (keep it short, alphanumeric only)
+name = "myaiproject"
+# Azure regions for deployment (fallback order: left to right)
+# The deployment will try each region in order until it finds one that works
+# Common regions: eastus, westus2, westeurope, northeurope, southcentralus, centralus
+locations = ["eastus", "westus2", "westeurope"]
+# Environment (dev, staging, prod)
+environment = "dev"
+# Resource group name (will be created if it doesn't exist)
+# Note: {location} will be replaced with the successfully deployed region
+resourceGroupName = "rg-myaiproject-dev"
+
+[admin]
+# List of admin user emails - these users will get full control plane and data plane access
+# Format: ["user1@domain.com", "user2@domain.com"]
+emails = [
+    "admin1@contoso.com",
+    "admin2@contoso.com"
+]
+
+[networking]
+# Enable Virtual Network with private endpoints for secure networking
+enabled = true
+# VNet address space
+vnetAddressPrefix = "10.0.0.0/16"
+# Subnet for Container Apps
+containerAppsSubnetPrefix = "10.0.0.0/23"
+# Subnet for private endpoints
+privateEndpointSubnetPrefix = "10.0.2.0/24"
+# Subnet for SQL integration
+sqlSubnetPrefix = "10.0.3.0/24"
+
+[services]
+# Enable/disable individual services as needed
+
+[services.openai]
+enabled = true
+# SKU: S0 (standard)
+sku = "S0"
+# Deployments to create
+deployments = [
+    { name = "gpt-4", model = "gpt-4", version = "2024-05-13", capacity = 10 },
+    { name = "gpt-35-turbo", model = "gpt-35-turbo", version = "0613", capacity = 10 },
+    { name = "text-embedding-ada-002", model = "text-embedding-ada-002", version = "2", capacity = 10 }
+]
+
+[services.cosmosdb]
+enabled = true
+# Enable NoSQL API (document database)
+enableNoSQL = true
+# Enable Gremlin API (graph database)
+enableGremlin = true
+# Consistency level: Strong, BoundedStaleness, Session, ConsistentPrefix, Eventual
+consistencyLevel = "Session"
+# Enable automatic failover
+automaticFailover = true
+
+[services.datalake]
+enabled = true
+# SKU: Standard_LRS, Standard_GRS, Standard_RAGRS, Standard_ZRS
+sku = "Standard_LRS"
+# Enable hierarchical namespace (required for Data Lake Gen2)
+isHnsEnabled = true
+
+[services.sqldb]
+enabled = true
+# SQL Server admin username
+adminUsername = "sqladmin"
+# SKU: Basic, S0, S1, S2, P1, P2, etc.
+databaseSku = "S1"
+# Enable Azure AD authentication
+enableAzureADAuth = true
+# Whitelist specific IP addresses (CIDR notation)
+# Leave empty to allow only Azure services (when VNet disabled) or VNet only (when VNet enabled)
+allowedIpRanges = [
+    # Example: "203.0.113.0/24",
+    # Example: "198.51.100.42/32"
+]
+
+[services.aisearch]
+enabled = true
+# SKU: free, basic, standard, standard2, standard3, storage_optimized_l1, storage_optimized_l2
+sku = "standard"
+# Number of replicas
+replicaCount = 1
+# Number of partitions
+partitionCount = 1
+
+[services.containerApps]
+enabled = true
+# Enable workload profiles for more control
+enableWorkloadProfiles = false
+
+[services.containerRegistry]
+enabled = true
+# SKU: Basic, Standard, Premium (Premium required for private endpoints)
+sku = "Premium"
+# Enable admin user (not recommended for production)
+adminUserEnabled = false
+
+[services.keyVault]
+enabled = true
+# SKU: standard, premium
+sku = "standard"
+# Enable RBAC authorization (recommended)
+enableRbacAuthorization = true
+# Enable soft delete
+enableSoftDelete = true
+# Soft delete retention days
+softDeleteRetentionInDays = 90
+
+[services.monitoring]
+enabled = true
+# Log Analytics retention in days
+retentionInDays = 30
+
+[tags]
+# Custom tags to apply to all resources
+Environment = "Development"
+ManagedBy = "AzureDeveloperCLI"
+Project = "AI-LandingZone"

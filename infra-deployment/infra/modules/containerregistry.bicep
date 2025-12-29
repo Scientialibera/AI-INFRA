@@ -5,7 +5,9 @@ param containerRegistryName string
 param sku string
 param enableVNet bool
 param privateEndpointSubnetId string
+param vnetId string = ''
 param containerAppsMIObjectId string
+param geoReplicationLocations array = []
 param tags object = {}
 
 // Azure Container Registry
@@ -23,6 +25,16 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' =
     zoneRedundancy: 'Disabled'
   }
 }
+
+// Geo-replication (Premium SKU only)
+resource geoReplications 'Microsoft.ContainerRegistry/registries/replications@2023-07-01' = [for replicationLocation in geoReplicationLocations: if (sku == 'Premium' && replicationLocation != location) {
+  parent: containerRegistry
+  name: replicationLocation
+  location: replicationLocation
+  properties: {
+    zoneRedundancy: 'Disabled'
+  }
+}]
 
 // Private Endpoint for Container Registry (if VNet enabled and Premium SKU)
 resource privateEndpoint 'Microsoft.Network/privateEndpoints@2023-05-01' = if (enableVNet && sku == 'Premium') {
@@ -52,6 +64,19 @@ resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (ena
   name: 'privatelink.azurecr.io'
   location: 'global'
   tags: tags
+}
+
+// VNet Link for Private DNS Zone
+resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (enableVNet && sku == 'Premium') {
+  parent: privateDnsZone
+  name: '${containerRegistryName}-vnet-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnetId
+    }
+  }
 }
 
 // Private DNS Zone Group

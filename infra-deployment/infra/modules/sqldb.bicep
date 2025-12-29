@@ -7,9 +7,12 @@ param sqlAdminUsername string
 param databaseSku string
 param enableVNet bool
 param privateEndpointSubnetId string
+param vnetId string = ''
 param containerAppsMIObjectId string
 param containerAppsMIPrincipalId string
 param allowedIpRanges array = []
+param keyVaultName string = ''
+param zoneRedundant bool = false
 param tags object = {}
 
 // Generate a secure password for SQL admin
@@ -65,7 +68,7 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-05-01-preview' = {
     collation: 'SQL_Latin1_General_CP1_CI_AS'
     maxSizeBytes: 2147483648 // 2 GB
     catalogCollation: 'SQL_Latin1_General_CP1_CI_AS'
-    zoneRedundant: false
+    zoneRedundant: zoneRedundant
     readScale: 'Disabled'
   }
 }
@@ -123,6 +126,19 @@ resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (ena
   tags: tags
 }
 
+// VNet Link for Private DNS Zone
+resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (enableVNet) {
+  parent: privateDnsZone
+  name: '${sqlServerName}-vnet-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnetId
+    }
+  }
+}
+
 // Private DNS Zone Group
 resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = if (enableVNet) {
   parent: privateEndpoint
@@ -147,6 +163,29 @@ resource sqlServerContributorRole 'Microsoft.Authorization/roleAssignments@2022-
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '9b7fa17d-e63e-47b0-bb0a-15c516ac86ec') // SQL DB Contributor
     principalId: containerAppsMIObjectId
     principalType: 'ServicePrincipal'
+  }
+}
+
+// Store SQL Admin Password in Key Vault
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = if (keyVaultName != '') {
+  name: keyVaultName
+}
+
+resource sqlPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (keyVaultName != '') {
+  parent: keyVault
+  name: 'sql-admin-password'
+  properties: {
+    value: sqlAdminPasswordSecret.properties.outputs.password
+    contentType: 'text/plain'
+  }
+}
+
+resource sqlConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (keyVaultName != '') {
+  parent: keyVault
+  name: 'sql-connection-string'
+  properties: {
+    value: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabaseName};Persist Security Info=False;User ID=${sqlAdminUsername};Password=${sqlAdminPasswordSecret.properties.outputs.password};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+    contentType: 'text/plain'
   }
 }
 

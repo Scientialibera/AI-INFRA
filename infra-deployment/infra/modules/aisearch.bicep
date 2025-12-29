@@ -3,13 +3,17 @@
 param location string
 param aiSearchName string
 param sku string
+param replicaCount int = 1
+param partitionCount int = 1
 param enableVNet bool
 param privateEndpointSubnetId string
+param vnetId string = ''
 param containerAppsMIObjectId string
+param semanticSearchTier string = 'free'
 param tags object = {}
 
 // Azure AI Search Service
-resource aiSearch 'Microsoft.Search/searchServices@2023-11-01' = {
+resource aiSearch 'Microsoft.Search/searchServices@2024-06-01-preview' = {
   name: aiSearchName
   location: location
   tags: tags
@@ -17,8 +21,8 @@ resource aiSearch 'Microsoft.Search/searchServices@2023-11-01' = {
     name: sku
   }
   properties: {
-    replicaCount: 1
-    partitionCount: 1
+    replicaCount: replicaCount
+    partitionCount: partitionCount
     hostingMode: 'default'
     publicNetworkAccess: enableVNet ? 'disabled' : 'enabled'
     networkRuleSet: enableVNet ? {
@@ -30,7 +34,7 @@ resource aiSearch 'Microsoft.Search/searchServices@2023-11-01' = {
         aadAuthFailureMode: 'http401WithBearerChallenge'
       }
     }
-    semanticSearch: 'free'
+    semanticSearch: semanticSearchTier
   }
   identity: {
     type: 'SystemAssigned'
@@ -65,6 +69,19 @@ resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (ena
   name: 'privatelink.search.windows.net'
   location: 'global'
   tags: tags
+}
+
+// VNet Link for Private DNS Zone
+resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (enableVNet) {
+  parent: privateDnsZone
+  name: '${aiSearchName}-vnet-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnetId
+    }
+  }
 }
 
 // Private DNS Zone Group

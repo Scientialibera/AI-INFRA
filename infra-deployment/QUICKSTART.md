@@ -4,17 +4,26 @@ Deploy your enterprise AI infrastructure in 30 minutes with automatic region fal
 
 ## What You'll Get
 
--  Azure OpenAI (GPT-4, GPT-3.5, embeddings)
--  Cosmos DB (NoSQL + Graph)
--  Data Lake Gen2 for storage
--  Azure SQL Database
--  Azure AI Search
--  Container Apps environment
--  Container Registry
--  Key Vault for secrets
--  Full monitoring setup
--  Secure networking (optional)
--  **Automatic region fallback** for resilient deployment
+### Core Services
+- ✅ Azure OpenAI (GPT-4, GPT-3.5, embeddings) with content filtering
+- ✅ Cosmos DB (NoSQL + Graph) with serverless & geo-replication options
+- ✅ Data Lake Gen2 for storage
+- ✅ Azure SQL Database with zone redundancy option
+- ✅ Azure AI Search with semantic/vector search
+- ✅ Container Apps environment with Dapr & zone redundancy
+- ✅ Container Registry with geo-replication
+- ✅ Key Vault for secrets (stores SQL password automatically)
+- ✅ Full monitoring setup with configurable retention
+- ✅ Secure networking with private DNS zone VNet links
+- ✅ **Automatic region fallback** for resilient deployment
+
+### Optional Services (NEW)
+- 🔹 API Management - API gateway for AI services
+- 🔹 Azure Front Door - Global CDN with WAF
+- 🔹 Redis Cache - For chat history/caching
+- 🔹 Azure Policy - Enforce required tags
+
+---
 
 ## 5-Minute Setup
 
@@ -29,7 +38,6 @@ Deploy your enterprise AI infrastructure in 30 minutes with automatic region fal
    ```toml
    [project]
    name = "yourproject"
-   # Add multiple regions for automatic fallback
    locations = ["eastus", "westus2", "westeurope"]
 
    [admin]
@@ -37,6 +45,7 @@ Deploy your enterprise AI infrastructure in 30 minutes with automatic region fal
    ```
 
 3. That's it! The deployment will automatically:
+   - Resolve your email to Azure AD Object ID
    - Test each region in order
    - Select the first one that supports all services
    - Deploy everything with proper permissions
@@ -56,54 +65,146 @@ chmod +x deploy.sh
 
 **Watch the magic happen:**
 ```
+Loading configuration from config.toml...
+
+Deployment Configuration:
+  Project Name: yourproject
+  Fallback Regions: eastus -> westus2 -> westeurope
+  Environment: dev
+  Admin Emails: your.email@company.com
+
+Resolving admin user Object IDs...
+  Looking up: your.email@company.com
+    ✓ Found: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
 Testing region availability...
   Testing region: eastus...
     Checking OpenAI availability...
     Checking Cosmos DB availability...
     Checking Container Apps availability...
-     Region eastus supports all required services
+    ✓ Region eastus supports all required services
 
- Selected region: eastus
+✓ Selected region: eastus
 
 Deploying infrastructure...
 ```
 
 Wait 15-30 minutes for completion.
 
-## Region Fallback Feature 
+---
+
+## Configuration Options
+
+### Enable Optional Services
+
+```toml
+# API Management for API gateway
+[services.apim]
+enabled = true
+publisherEmail = "api-admin@company.com"
+publisherName = "Your Company"
+sku = "Developer"
+
+# Azure Front Door with WAF
+[services.frontDoor]
+enabled = true
+enableWaf = true
+
+# Redis Cache for chat history
+[services.redis]
+enabled = true
+sku = "Standard"
+capacity = 1
+
+# Azure Policy for tag enforcement
+[policy]
+enabled = true
+requiredTags = ["reason", "purpose"]
+enforcementMode = "Default"  # "Default" = Deny, "DoNotEnforce" = Audit
+```
+
+### Enhanced Service Options
+
+```toml
+# OpenAI with content filtering
+[services.openai]
+enabled = true
+contentFilterPolicy = "default"
+deployments = [
+    { name = "gpt-4", model = "gpt-4", version = "2024-05-13", capacity = 10 },
+    { name = "gpt-35-turbo", model = "gpt-35-turbo", version = "0613", capacity = 10 }
+]
+
+# Cosmos DB with advanced features
+[services.cosmosdb]
+enabled = true
+enableNoSQL = true
+enableGremlin = true
+consistencyLevel = "Session"
+enableServerless = false        # Cost-effective for dev
+enableAnalyticalStorage = false # For analytics workloads
+additionalRegions = []          # e.g., ["westus2", "westeurope"]
+
+# SQL with zone redundancy
+[services.sqldb]
+enabled = true
+databaseSku = "S1"
+zoneRedundant = false  # Set true for production
+
+# AI Search with semantic/vector
+[services.aisearch]
+enabled = true
+sku = "standard"
+replicaCount = 1
+partitionCount = 1
+semanticSearchTier = "free"  # or "standard"
+
+# Container Apps with Dapr
+[services.containerApps]
+enabled = true
+enableDapr = false       # Enable for microservices
+zoneRedundant = false    # Enable for production
+
+# Container Registry with geo-replication
+[services.containerRegistry]
+enabled = true
+sku = "Premium"
+geoReplicationLocations = []  # e.g., ["westus2", "westeurope"]
+
+# Key Vault configuration
+[services.keyVault]
+enabled = true
+sku = "standard"
+softDeleteRetentionInDays = 90
+
+# Monitoring with custom retention
+[services.monitoring]
+enabled = true
+retentionInDays = 30  # 30-730 days
+```
+
+### Required Tags (with Policy)
+
+```toml
+[tags]
+Environment = "Development"
+ManagedBy = "AzureDeveloperCLI"
+Project = "AI-LandingZone"
+reason = "AI Landing Zone Infrastructure"  # Required by policy
+purpose = "Enterprise AI Platform"         # Required by policy
+```
+
+---
+
+## Region Fallback Feature 🌍
 
 ### How It Works
 
 The deployment automatically:
 1. **Tests each region** in your `locations` array (left to right)
-2. **Checks availability** of enabled services (OpenAI, Cosmos DB, Container Apps, etc.)
+2. **Checks availability** of enabled services
 3. **Selects the first** region that supports everything
 4. **Deploys there** with no manual intervention
-
-### Example Scenarios
-
-**Scenario 1: OpenAI Not Available in Primary Region**
-```toml
-locations = ["canadaeast", "eastus", "westus2"]
-```
-Output:
-```
-Testing region: canadaeast...
-   OpenAI not available in canadaeast
-Testing region: eastus...
-   Region eastus supports all required services
- Selected region: eastus
-```
-
-**Scenario 2: Multiple Services Check**
-```toml
-locations = ["southcentralus", "westeurope", "eastus"]
-```
-The script checks each region for:
-- OpenAI availability (if enabled)
-- Cosmos DB availability (if enabled)
-- Container Apps availability (if enabled)
-- Other services as configured
 
 ### Recommended Region Sets
 
@@ -122,120 +223,97 @@ locations = ["westeurope", "northeurope", "uksouth", "francecentral"]
 locations = ["eastus", "westus2", "westeurope", "southeastasia", "australiaeast"]
 ```
 
-**Cost-Optimized (Fewer regions, faster decision):**
-```toml
-locations = ["eastus", "westus2"]
-```
-
-## Customization Examples
-
-### Minimal Setup (Lower Cost)
-
-```toml
-[project]
-name = "myai"
-locations = ["eastus", "westus2"]
-
-[networking]
-enabled = false  # Skip VNet for simpler setup
-
-[services.openai]
-enabled = true
-
-[services.datalake]
-enabled = true
-
-# Disable what you don't need
-[services.cosmosdb]
-enabled = false
-
-[services.sqldb]
-enabled = false
-
-[services.aisearch]
-enabled = false
-```
-
-**Monthly Cost**: ~$50-100
-
-### Full Stack (Production Ready)
-
-```toml
-[project]
-name = "prodai"
-locations = ["eastus", "westus2", "westeurope"]
-environment = "prod"
-
-[networking]
-enabled = true  # Secure private networking
-
-# All services enabled with default settings
-```
-
-**Monthly Cost**: ~$500-1000
-
-### Specific Region Requirements
-
-If you need a specific region for compliance:
-
-```toml
-# Europe-only for GDPR
-locations = ["westeurope", "northeurope", "francecentral"]
-
-# US-only for data residency
-locations = ["eastus", "westus2", "southcentralus"]
-
-# Asia-Pacific only
-locations = ["southeastasia", "australiaeast", "japaneast"]
-```
+---
 
 ## What Happens During Deployment
 
-### Phase 1: Region Selection (2-3 minutes)
+### Phase 1: Preparation (2-3 minutes)
 ```
- Loading configuration
- Testing region availability...
-  Testing region: eastus...
-    Checking OpenAI availability...
-    Checking Cosmos DB availability...
-    Checking Container Apps availability...
- Selected region: eastus
- Creating resource group: rg-myai-dev-eastus
+✓ Loading configuration
+✓ Resolving admin emails to Azure AD Object IDs
+✓ Testing region availability...
+✓ Selected region: eastus
+✓ Creating resource group
 ```
 
 ### Phase 2: Infrastructure Deployment (15-30 minutes)
 ```
- Deploying networking (VNet, subnets, NSGs)
- Deploying monitoring (Log Analytics, App Insights)
- Creating managed identity
- Deploying OpenAI (with model deployments)
- Deploying Cosmos DB
- Deploying Data Lake
- Deploying SQL Database
- Deploying AI Search
- Deploying Container Apps
- Deploying Container Registry
- Deploying Key Vault
- Configuring RBAC (admin permissions)
- Creating private endpoints
+✓ Deploying networking (VNet, subnets, NSGs)
+✓ Deploying monitoring (Log Analytics, App Insights)
+✓ Creating managed identity
+✓ Deploying Key Vault
+✓ Deploying OpenAI (with model deployments)
+✓ Deploying Cosmos DB (with SQL role assignments)
+✓ Deploying Data Lake (with private DNS links)
+✓ Deploying SQL Database (password stored in Key Vault)
+✓ Deploying AI Search
+✓ Deploying Container Apps
+✓ Deploying Container Registry
+✓ Deploying APIM (if enabled)
+✓ Deploying Front Door (if enabled)
+✓ Deploying Redis (if enabled)
+✓ Configuring Azure Policy (if enabled)
+✓ Configuring RBAC (admin permissions)
+✓ Creating private endpoints with VNet-linked DNS zones
 ```
 
 ### Phase 3: Outputs
 ```
 Deployment Outputs:
   selectedRegion: eastus
-  openAIEndpoint: https://myai-openai-dev-eastus.openai.azure.com/
-  cosmosDBEndpoint: https://myai-cosmos-dev-eastus.documents.azure.com/
+  openAIEndpoint: https://yourproject-openai-dev.openai.azure.com/
+  cosmosDBEndpoint: https://yourproject-cosmos-dev.documents.azure.com/
   containerAppsMIClientId: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-  keyVaultUri: https://myai-kv-dev-eastus.vault.azure.net/
+  keyVaultUri: https://yourproject-kv-dev.vault.azure.net/
+  sqlServerFQDN: yourproject-sql-dev.database.windows.net
+  apimGatewayUrl: https://yourproject-apim-dev.azure-api.net/
+  frontDoorEndpoint: yourproject-fd-dev-endpoint.azurefd.net
+  redisHostName: yourproject-redis-dev.redis.cache.windows.net
 ```
+
+---
+
+## Key Features Explained
+
+### SQL Password in Key Vault
+SQL admin password is **automatically generated** and stored in Key Vault:
+- Secret name: `sql-admin-password`
+- Connection string: `sql-connection-string`
+
+No need to manage passwords manually!
+
+### Private DNS Zone VNet Links
+When VNet is enabled, all private DNS zones are automatically linked to the VNet:
+- Enables proper name resolution for private endpoints
+- No manual DNS configuration needed
+- Supports all services (OpenAI, Cosmos DB, SQL, Storage, etc.)
+
+### Content Filtering for OpenAI
+Configure responsible AI content filters:
+```toml
+[services.openai]
+contentFilterPolicy = "default"  # or custom policy name
+deployments = [
+    { name = "gpt-4", model = "gpt-4", version = "2024-05-13", capacity = 10, raiPolicyName = "custom-filter" }
+]
+```
+
+### Cosmos DB Data Plane RBAC
+Cosmos DB uses its own SQL Role Assignment system (not Azure RBAC) for data plane access:
+- Proper data contributor role assigned to managed identity
+- Admin users get both control plane AND data plane access
+
+---
 
 ## Verify Deployment
 
 1. **Azure Portal**: Navigate to your resource group
 2. **Check Services**: All enabled services should show "Running"
-3. **Test Access**: Use the managed identity to connect
-4. **View Logs**: Check Log Analytics for activity
+3. **Verify Secrets**: Check Key Vault for SQL password
+4. **Test DNS**: Private endpoints should resolve correctly
+5. **View Logs**: Check Log Analytics for activity
+
+---
 
 ## Next Steps
 
@@ -263,7 +341,16 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
-### 2. Deploy Your Container
+### 2. Get SQL Password from Key Vault
+
+```bash
+az keyvault secret show \
+  --vault-name <YOUR_KV_NAME> \
+  --name sql-admin-password \
+  --query value -o tsv
+```
+
+### 3. Deploy Your Container
 
 ```bash
 # Build and push
@@ -281,22 +368,14 @@ az containerapp create \
   --target-port 80
 ```
 
-### 3. Store Secrets
-
-```bash
-az keyvault secret set \
-  --vault-name <YOUR_KV_NAME> \
-  --name ApiKey \
-  --value "your-secret"
-```
+---
 
 ## Troubleshooting
 
 ### All Regions Fail
-
 If you see:
 ```
- None of the specified regions support all required services!
+✗ None of the specified regions support all required services!
 ```
 
 **Solutions:**
@@ -304,46 +383,25 @@ If you see:
 2. Disable services you don't need
 3. Check [Azure Products by Region](https://azure.microsoft.com/global-infrastructure/services/)
 
-### Quota Exceeded
+### Admin Email Not Found
+```
+✗ User not found in Azure AD: user@company.com
+```
 
-If OpenAI deployment fails with quota error:
-1. Try a different region from your list
-2. Request quota increase in Azure Portal
-3. Reduce `capacity` in OpenAI deployments config
+**Solution**: Ensure the email is a valid Azure AD user principal name (UPN)
 
 ### Permission Denied
-
 Ensure you have:
 - Contributor role on subscription
 - User Access Administrator role (for RBAC)
 
-Check your roles:
-```bash
-az role assignment list --assignee $(az ad signed-in-user show --query id -o tsv)
-```
+### Private Endpoint DNS Issues
+If private endpoints aren't resolving:
+1. Verify VNet is enabled in config
+2. Check that DNS zone VNet links exist
+3. Restart your client/VM to refresh DNS cache
 
-### Slow Deployment
-
-First deployment takes 20-30 minutes (normal). Services that take longest:
-- OpenAI: 5-10 minutes (model deployments)
-- Cosmos DB: 3-5 minutes
-- SQL Database: 3-5 minutes
-
-## Cost Monitoring
-
-### View Current Costs
-
-```bash
-az consumption usage list \
-  --start-date $(date -d "1 month ago" +%Y-%m-%d) \
-  --end-date $(date +%Y-%m-%d)
-```
-
-### Set Budget Alert
-
-1. Azure Portal → Cost Management
-2. Create budget for your resource group
-3. Set alerts at 80% and 100%
+---
 
 ## Clean Up
 
@@ -352,75 +410,34 @@ Delete everything:
 az group delete --name <YOUR_RG_NAME> --yes --no-wait
 ```
 
- **Warning**: This is permanent and deletes all data!
+⚠️ **Warning**: This is permanent and deletes all data!
 
-## Advanced: Region-Specific Optimization
-
-### Optimize for Latency
-
-Put regions closest to your users first:
-```toml
-# Users in US East Coast
-locations = ["eastus", "centralus", "westus2"]
-
-# Users in Western Europe
-locations = ["westeurope", "northeurope", "uksouth"]
-```
-
-### Optimize for Cost
-
-Some regions have lower costs:
-```toml
-# Generally lower-cost US regions
-locations = ["southcentralus", "centralus", "eastus"]
-```
-
-### Optimize for Compliance
-
-```toml
-# GDPR - Europe only
-locations = ["westeurope", "northeurope"]
-
-# FedRAMP - US Gov regions
-locations = ["usgovvirginia", "usgovarizona"]
-```
+---
 
 ## Learn More
 
 - **Full Documentation**: [README.md](README.md)
-- **Architecture Details**: [ARCHITECTURE.md](ARCHITECTURE.md)
-- **Deployment Summary**: [DEPLOYMENT_SUMMARY.md](DEPLOYMENT_SUMMARY.md)
+- **Permissions Details**: [PERMISSIONS_MATRIX.md](PERMISSIONS_MATRIX.md)
+- **Future Improvements**: [FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md)
+
+---
 
 ## Success Checklist
 
 After deployment, you should have:
 
--  All services deployed in selected region
--  Managed identity with permissions configured
--  Your admin account has full access
--  Private networking (if enabled)
--  Monitoring collecting logs
--  Service endpoints available
-
-## Common Questions
-
-**Q: Can I add more regions after deployment?**
-A: Yes! Just update config.toml and redeploy. The deployment is idempotent.
-
-**Q: What if I need a service not available in any of my regions?**
-A: Either add more regions, or disable that service and use an alternative.
-
-**Q: Does it cost extra to list multiple fallback regions?**
-A: No! Only the selected region is deployed. Others are just tested.
-
-**Q: Can I force a specific region?**
-A: Yes, just put one region in the locations array: `locations = ["westeurope"]`
-
-**Q: What happens if my primary region becomes unavailable later?**
-A: The infrastructure stays in the deployed region. To move, update config and redeploy.
+- ✅ All services deployed in selected region
+- ✅ Managed identity with permissions configured
+- ✅ Your admin account has full access (via Object ID)
+- ✅ Private networking with DNS zone VNet links (if enabled)
+- ✅ SQL password stored in Key Vault
+- ✅ Monitoring collecting logs
+- ✅ Service endpoints available
+- ✅ APIM/Front Door/Redis (if enabled)
+- ✅ Azure Policy enforcing tags (if enabled)
 
 ---
 
-**Ready to deploy?** Just run `.\deploy.ps1` (Windows) or `./deploy.sh` (Linux/Mac) and you're live in 30 minutes! 
+**Ready to deploy?** Just run `.\deploy.ps1` (Windows) or `./deploy.sh` (Linux/Mac) and you're live in 30 minutes! 🚀
 
 The automatic region fallback ensures you'll never fail due to regional service availability. Just specify your preferred regions and let the deployment handle the rest!

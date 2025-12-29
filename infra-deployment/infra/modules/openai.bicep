@@ -5,7 +5,9 @@ param openAIName string
 param deployments array = []
 param enableVNet bool
 param privateEndpointSubnetId string
+param vnetId string = ''
 param containerAppsMIObjectId string
+param contentFilterPolicyName string = 'default'
 param tags object = {}
 
 // OpenAI Cognitive Services Account
@@ -32,7 +34,7 @@ resource openAI 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
 
 // Deploy models
 @batchSize(1)
-resource openAIDeployments 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01' = [for deployment in deployments: {
+resource openAIDeployments 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = [for deployment in deployments: {
   parent: openAI
   name: deployment.name
   sku: {
@@ -45,6 +47,7 @@ resource openAIDeployments 'Microsoft.CognitiveServices/accounts/deployments@202
       name: deployment.model
       version: deployment.version
     }
+    raiPolicyName: contains(deployment, 'raiPolicyName') ? deployment.raiPolicyName : contentFilterPolicyName
   }
 }]
 
@@ -76,6 +79,19 @@ resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (ena
   name: 'privatelink.openai.azure.com'
   location: 'global'
   tags: tags
+}
+
+// VNet Link for Private DNS Zone
+resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (enableVNet) {
+  parent: privateDnsZone
+  name: '${openAIName}-vnet-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnetId
+    }
+  }
 }
 
 // Private DNS Zone Group

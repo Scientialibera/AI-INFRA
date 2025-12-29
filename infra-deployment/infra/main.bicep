@@ -3,7 +3,10 @@
 
 targetScope = 'resourceGroup'
 
-// Parameters loaded from config
+// =============================================================================
+// CORE PARAMETERS
+// =============================================================================
+
 @description('Project name prefix for resource naming')
 param projectName string
 
@@ -13,13 +16,16 @@ param location string = resourceGroup().location
 @description('Environment (dev, staging, prod)')
 param environment string
 
-@description('Admin user emails for RBAC assignments')
-param adminEmails array = []
+@description('Admin user Object IDs for RBAC assignments (resolved from emails by deploy script)')
+param adminObjectIds array = []
 
 @description('Tags to apply to all resources')
 param tags object = {}
 
-// Networking parameters
+// =============================================================================
+// NETWORKING PARAMETERS
+// =============================================================================
+
 @description('Enable Virtual Network and private endpoints')
 param enableVNet bool = true
 
@@ -35,7 +41,10 @@ param privateEndpointSubnetPrefix string = '10.0.2.0/24'
 @description('SQL subnet prefix')
 param sqlSubnetPrefix string = '10.0.3.0/24'
 
-// Service enablement flags
+// =============================================================================
+// SERVICE ENABLEMENT FLAGS
+// =============================================================================
+
 @description('Enable OpenAI Service')
 param enableOpenAI bool = true
 
@@ -63,9 +72,31 @@ param enableKeyVault bool = true
 @description('Enable Monitoring')
 param enableMonitoring bool = true
 
-// Service-specific parameters
+@description('Enable API Management')
+param enableAPIM bool = false
+
+@description('Enable Azure Front Door')
+param enableFrontDoor bool = false
+
+@description('Enable Redis Cache')
+param enableRedis bool = false
+
+@description('Enable Azure Policy for required tags')
+param enablePolicy bool = false
+
+// =============================================================================
+// OPENAI PARAMETERS
+// =============================================================================
+
 @description('OpenAI deployments configuration')
 param openAIDeployments array = []
+
+@description('OpenAI content filter policy name')
+param openAIContentFilterPolicy string = 'default'
+
+// =============================================================================
+// COSMOS DB PARAMETERS
+// =============================================================================
 
 @description('Cosmos DB - Enable NoSQL API')
 param cosmosEnableNoSQL bool = true
@@ -76,6 +107,19 @@ param cosmosEnableGremlin bool = true
 @description('Cosmos DB - Consistency level')
 param cosmosConsistencyLevel string = 'Session'
 
+@description('Cosmos DB - Enable serverless mode')
+param cosmosEnableServerless bool = false
+
+@description('Cosmos DB - Enable analytical storage')
+param cosmosEnableAnalyticalStorage bool = false
+
+@description('Cosmos DB - Additional regions for geo-replication')
+param cosmosAdditionalRegions array = []
+
+// =============================================================================
+// SQL DATABASE PARAMETERS
+// =============================================================================
+
 @description('SQL Database SKU')
 param sqlDatabaseSku string = 'S1'
 
@@ -85,16 +129,116 @@ param sqlAdminUsername string = 'sqladmin'
 @description('SQL allowed IP ranges (CIDR notation)')
 param sqlAllowedIpRanges array = []
 
+@description('SQL Database zone redundancy')
+param sqlZoneRedundant bool = false
+
+// =============================================================================
+// AI SEARCH PARAMETERS
+// =============================================================================
+
 @description('AI Search SKU')
 param aiSearchSku string = 'standard'
+
+@description('AI Search replica count')
+param aiSearchReplicaCount int = 1
+
+@description('AI Search partition count')
+param aiSearchPartitionCount int = 1
+
+@description('AI Search semantic search tier (free, standard)')
+param aiSearchSemanticTier string = 'free'
+
+// =============================================================================
+// CONTAINER APPS PARAMETERS
+// =============================================================================
+
+@description('Enable Dapr for Container Apps')
+param containerAppsEnableDapr bool = false
+
+@description('Enable zone redundancy for Container Apps')
+param containerAppsZoneRedundant bool = false
+
+@description('Custom domain configuration for Container Apps')
+param containerAppsCustomDomain object = {}
+
+// =============================================================================
+// CONTAINER REGISTRY PARAMETERS
+// =============================================================================
 
 @description('Container Registry SKU')
 param containerRegistrySku string = 'Premium'
 
+@description('Container Registry geo-replication locations')
+param containerRegistryGeoReplicationLocations array = []
+
+// =============================================================================
+// DATA LAKE PARAMETERS
+// =============================================================================
+
 @description('Data Lake Storage SKU')
 param dataLakeSku string = 'Standard_LRS'
 
-// Variables for deterministic naming
+// =============================================================================
+// KEY VAULT PARAMETERS
+// =============================================================================
+
+@description('Key Vault SKU (standard, premium)')
+param keyVaultSku string = 'standard'
+
+@description('Key Vault soft delete retention days')
+param keyVaultSoftDeleteRetentionDays int = 90
+
+// =============================================================================
+// MONITORING PARAMETERS
+// =============================================================================
+
+@description('Log Analytics retention in days')
+param logAnalyticsRetentionDays int = 30
+
+// =============================================================================
+// API MANAGEMENT PARAMETERS
+// =============================================================================
+
+@description('APIM publisher email')
+param apimPublisherEmail string = ''
+
+@description('APIM publisher name')
+param apimPublisherName string = ''
+
+@description('APIM SKU (Developer, Basic, Standard, Premium)')
+param apimSku string = 'Developer'
+
+// =============================================================================
+// FRONT DOOR PARAMETERS
+// =============================================================================
+
+@description('Enable WAF for Front Door')
+param frontDoorEnableWaf bool = false
+
+// =============================================================================
+// REDIS PARAMETERS
+// =============================================================================
+
+@description('Redis SKU (Basic, Standard, Premium)')
+param redisSku string = 'Standard'
+
+@description('Redis capacity')
+param redisCapacity int = 1
+
+// =============================================================================
+// POLICY PARAMETERS
+// =============================================================================
+
+@description('Required tags for Azure Policy enforcement')
+param requiredTags array = ['reason', 'purpose']
+
+@description('Policy enforcement mode (Default = Deny, DoNotEnforce = Audit)')
+param policyEnforcementMode string = 'Default'
+
+// =============================================================================
+// VARIABLES FOR DETERMINISTIC NAMING
+// =============================================================================
+
 var namingPrefix = '${projectName}-${environment}'
 var openAIName = '${namingPrefix}-openai'
 var cosmosDBName = '${namingPrefix}-cosmos'
@@ -108,6 +252,10 @@ var keyVaultName = '${namingPrefix}-kv'
 var logAnalyticsName = '${namingPrefix}-logs'
 var appInsightsName = '${namingPrefix}-appinsights'
 var vnetName = '${namingPrefix}-vnet'
+var apimName = '${namingPrefix}-apim'
+var frontDoorName = '${namingPrefix}-fd'
+var wafPolicyName = '${namingPrefix}-waf'
+var redisName = '${namingPrefix}-redis'
 
 // Managed Identity names
 var containerAppsMIName = '${namingPrefix}-containerapp-mi'
@@ -133,6 +281,7 @@ module monitoring './modules/monitoring.bicep' = if (enableMonitoring) {
     location: location
     logAnalyticsName: logAnalyticsName
     appInsightsName: appInsightsName
+    retentionInDays: logAnalyticsRetentionDays
     tags: tags
   }
 }
@@ -155,7 +304,10 @@ module keyVault './modules/keyvault.bicep' = if (enableKeyVault) {
     keyVaultName: keyVaultName
     enableVNet: enableVNet
     privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: enableVNet ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
+    skuName: keyVaultSku
+    softDeleteRetentionInDays: keyVaultSoftDeleteRetentionDays
     tags: tags
   }
 }
@@ -169,7 +321,9 @@ module openAI './modules/openai.bicep' = if (enableOpenAI) {
     deployments: openAIDeployments
     enableVNet: enableVNet
     privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: enableVNet ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
+    contentFilterPolicyName: openAIContentFilterPolicy
     tags: tags
   }
 }
@@ -183,8 +337,12 @@ module cosmosDB './modules/cosmosdb.bicep' = if (enableCosmosDB) {
     enableNoSQL: cosmosEnableNoSQL
     enableGremlin: cosmosEnableGremlin
     consistencyLevel: cosmosConsistencyLevel
+    enableServerless: cosmosEnableServerless
+    enableAnalyticalStorage: cosmosEnableAnalyticalStorage
+    additionalLocations: cosmosAdditionalRegions
     enableVNet: enableVNet
     privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: enableVNet ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
     tags: tags
   }
@@ -199,7 +357,11 @@ module dataLake './modules/datalake.bicep' = if (enableDataLake) {
     sku: dataLakeSku
     enableVNet: enableVNet
     privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: enableVNet ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
+    tags: tags
+  }
+}
     tags: tags
   }
 }
@@ -215,11 +377,17 @@ module sqlDB './modules/sqldb.bicep' = if (enableSQLDB) {
     databaseSku: sqlDatabaseSku
     enableVNet: enableVNet
     privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: enableVNet ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
     containerAppsMIPrincipalId: identities.outputs.containerAppsMIPrincipalId
     allowedIpRanges: sqlAllowedIpRanges
+    keyVaultName: enableKeyVault ? keyVaultName : ''
+    zoneRedundant: sqlZoneRedundant
     tags: tags
   }
+  dependsOn: [
+    keyVault
+  ]
 }
 
 // Deploy AI Search
@@ -229,8 +397,12 @@ module aiSearch './modules/aisearch.bicep' = if (enableAISearch) {
     location: location
     aiSearchName: aiSearchName
     sku: aiSearchSku
+    replicaCount: aiSearchReplicaCount
+    partitionCount: aiSearchPartitionCount
+    semanticSearchTier: aiSearchSemanticTier
     enableVNet: enableVNet
     privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: enableVNet ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
     tags: tags
   }
@@ -245,7 +417,9 @@ module containerRegistry './modules/containerregistry.bicep' = if (enableContain
     sku: containerRegistrySku
     enableVNet: enableVNet
     privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: enableVNet ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
+    geoReplicationLocations: containerRegistryGeoReplicationLocations
     tags: tags
   }
 }
@@ -259,6 +433,9 @@ module containerApps './modules/containerapps.bicep' = if (enableContainerApps) 
     enableVNet: enableVNet
     containerAppsSubnetId: enableVNet ? networking.outputs.containerAppsSubnetId : ''
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : ''
+    enableDapr: containerAppsEnableDapr
+    enableZoneRedundancy: containerAppsZoneRedundant
+    customDomainConfig: containerAppsCustomDomain
     tags: tags
   }
 }
@@ -267,7 +444,7 @@ module containerApps './modules/containerapps.bicep' = if (enableContainerApps) 
 module rbac './modules/rbac.bicep' = {
   name: 'rbac-deployment'
   params: {
-    adminEmails: adminEmails
+    adminObjectIds: adminObjectIds
     openAIName: enableOpenAI ? openAIName : ''
     cosmosDBName: enableCosmosDB ? cosmosDBName : ''
     dataLakeName: enableDataLake ? dataLakeName : ''
@@ -287,6 +464,63 @@ module rbac './modules/rbac.bicep' = {
   ]
 }
 
+// Deploy API Management
+module apim './modules/apim.bicep' = if (enableAPIM) {
+  name: 'apim-deployment'
+  params: {
+    location: location
+    apimName: apimName
+    publisherEmail: apimPublisherEmail
+    publisherName: apimPublisherName
+    sku: apimSku
+    enableVNet: enableVNet
+    privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: enableVNet ? networking.outputs.vnetId : ''
+    openAIEndpoint: enableOpenAI ? openAI.outputs.endpoint : ''
+    aiSearchEndpoint: enableAISearch ? aiSearch.outputs.endpoint : ''
+    containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
+    tags: tags
+  }
+}
+
+// Deploy Azure Front Door
+module frontDoor './modules/frontdoor.bicep' = if (enableFrontDoor) {
+  name: 'frontdoor-deployment'
+  params: {
+    frontDoorName: frontDoorName
+    wafPolicyName: wafPolicyName
+    enableWaf: frontDoorEnableWaf
+    containerAppsDefaultDomain: enableContainerApps ? containerApps.outputs.defaultDomain : ''
+    apimGatewayHostname: enableAPIM ? '${apimName}.azure-api.net' : ''
+    tags: tags
+  }
+}
+
+// Deploy Redis Cache
+module redis './modules/redis.bicep' = if (enableRedis) {
+  name: 'redis-deployment'
+  params: {
+    location: location
+    redisName: redisName
+    sku: redisSku
+    skuCapacity: redisCapacity
+    enableVNet: enableVNet
+    privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: enableVNet ? networking.outputs.vnetId : ''
+    containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
+    tags: tags
+  }
+}
+
+// Deploy Azure Policy
+module policy './modules/policy.bicep' = if (enablePolicy) {
+  name: 'policy-deployment'
+  params: {
+    requiredTags: requiredTags
+    enforcementMode: policyEnforcementMode
+  }
+}
+
 // Outputs
 output vnetId string = enableVNet ? networking.outputs.vnetId : ''
 output containerAppsMIPrincipalId string = identities.outputs.containerAppsMIPrincipalId
@@ -298,5 +532,9 @@ output sqlServerFQDN string = enableSQLDB ? sqlDB.outputs.serverFQDN : ''
 output aiSearchEndpoint string = enableAISearch ? aiSearch.outputs.endpoint : ''
 output containerRegistryLoginServer string = enableContainerRegistry ? containerRegistry.outputs.loginServer : ''
 output containerAppsEnvId string = enableContainerApps ? containerApps.outputs.environmentId : ''
+output containerAppsDefaultDomain string = enableContainerApps ? containerApps.outputs.defaultDomain : ''
 output keyVaultUri string = enableKeyVault ? keyVault.outputs.vaultUri : ''
 output logAnalyticsWorkspaceId string = enableMonitoring ? monitoring.outputs.logAnalyticsWorkspaceId : ''
+output apimGatewayUrl string = enableAPIM ? apim.outputs.gatewayUrl : ''
+output frontDoorEndpoint string = enableFrontDoor ? frontDoor.outputs.frontDoorFqdn : ''
+output redisHostName string = enableRedis ? redis.outputs.hostName : ''

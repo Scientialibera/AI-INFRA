@@ -1,451 +1,618 @@
-# Azure AI Landing Zone - Enterprise Infrastructure Deployment
+# Azure AI Landing Zone - Infrastructure Deployment
 
-This repository contains **enterprise-grade** Azure infrastructure deployment code for AI projects using **Azure Developer CLI (azd)** and **Bicep**.
+Enterprise-grade Azure AI infrastructure with automatic region fallback, comprehensive security, and modular architecture.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [Configuration Reference](#configuration-reference)
+- [Services Reference](#services-reference)
+- [Security Model](#security-model)
+- [Network Architecture](#network-architecture)
+- [Deployment](#deployment)
+- [Cost Estimation](#cost-estimation)
+- [Troubleshooting](#troubleshooting)
+- [Future Roadmap](#future-roadmap)
+
+---
 
 ## Overview
 
-This deployment creates a secure, scalable, and production-ready landing zone for AI workloads with the following features:
+This project deploys a complete Azure AI Landing Zone infrastructure using:
 
-- **Modular Service Deployment**: Enable/disable services as needed
-- **Secure Networking**: VNet with private endpoints, NSGs, and private DNS zones
-- **Identity & Access Management**: Managed identities and comprehensive RBAC
-- **Deterministic Naming**: All resource names generated from project configuration
-- **Idempotent Deployments**: Safe to run multiple times
-- **Multi-Admin Support**: Automatically grant permissions to specified admin users
+- **Azure Bicep** for Infrastructure as Code
+- **Azure Developer CLI (azd)** for streamlined deployment (optional)
+- **PowerShell/Bash scripts** for automated configuration
+- **TOML configuration** for simple, readable settings
+- **Automatic region fallback** for resilient deployment
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| 🌍 **Region Fallback** | Automatically selects first available region from your list |
+| 🔐 **Zero-Trust Security** | Private endpoints, VNet isolation, RBAC |
+| 🤖 **AI-Ready** | OpenAI, AI Search, Cosmos DB pre-configured |
+| 📊 **Full Observability** | Log Analytics, App Insights, configurable retention |
+| 🏗️ **Modular Design** | Enable only the services you need |
+| 🏷️ **Governance** | Azure Policy for required tags enforcement |
+| 🔑 **Secrets Management** | Auto-generated passwords stored in Key Vault |
+
+---
 
 ## Architecture
 
-### Azure Services Deployed
-
-| Service | Purpose | Optional |
-|---------|---------|----------|
-| **Azure OpenAI** | LLM and embedding models |  |
-| **Cosmos DB** | NoSQL document & graph database |  |
-| **Azure Data Lake Gen2** | Large-scale data storage |  |
-| **Azure SQL Database** | Relational database |  |
-| **Azure AI Search** | Cognitive search & vector search |  |
-| **Container Apps** | Serverless container hosting |  |
-| **Container Registry** | Container image storage |  |
-| **Key Vault** | Secrets & certificate management |  |
-| **Log Analytics** | Centralized logging |  |
-| **Application Insights** | Application monitoring |  |
-
-### Network Architecture
-
-When VNet is enabled:
-- **Virtual Network** with dedicated subnets
-  - Container Apps subnet
-  - Private Endpoints subnet
-  - SQL subnet
-- **Private Endpoints** for all services
-- **Network Security Groups** for subnet-level security
-- **Private DNS Zones** for private endpoint name resolution
-
-### Security & Identity
-
-- **Managed Identity**: User-assigned identity for Container Apps with access to all services
-- **RBAC Roles**: Least-privilege access for service-to-service communication
-- **Admin Access**: Automated RBAC assignments for admin users across all services
-- **Network Isolation**: Optional private networking for all services
-
-## Prerequisites
-
-1. **Azure CLI** (version 2.50.0 or later)
-   ```bash
-   az --version
-   ```
-   Install from: https://aka.ms/azure-cli
-
-2. **Azure Developer CLI (azd)** - OPTIONAL but recommended
-   ```bash
-   azd version
-   ```
-   Install from: https://aka.ms/azd
-
-3. **Azure Subscription** with Owner or Contributor role
-
-4. **For Bash deployment**: Python 3.7+ with `tomli` package
-
-## Quick Start
-
-### Option 1: Using Azure Developer CLI (azd) - Recommended
-
-```bash
-# 1. Navigate to the deployment folder
-cd infra-deployment
-
-# 2. Edit config.toml with your settings
-# See Configuration section below
-
-# 3. Initialize azd (first time only)
-azd init
-
-# 4. Deploy
-azd up
-```
-
-### Option 2: Using PowerShell Script
-
-```powershell
-# 1. Navigate to the deployment folder
-cd infra-deployment
-
-# 2. Edit config.toml with your settings
-
-# 3. Run deployment
-.\deploy.ps1
-
-# Optional: Run in what-if mode to preview changes
-.\deploy.ps1 -WhatIf
-```
-
-### Option 3: Using Bash Script
-
-```bash
-# 1. Navigate to the deployment folder
-cd infra-deployment
-
-# 2. Make script executable
-chmod +x deploy.sh
-
-# 3. Edit config.toml with your settings
-
-# 4. Run deployment
-./deploy.sh
-
-# Optional: Run in what-if mode
-./deploy.sh config.toml --what-if
-```
-
-### Option 4: Direct Azure CLI Deployment
-
-```bash
-# 1. Create resource group
-az group create --name rg-myai-dev-eastus --location eastus
-
-# 2. Deploy Bicep template
-az deployment group create \
-  --name ai-landing-zone \
-  --resource-group rg-myai-dev-eastus \
-  --template-file infra/main.bicep \
-  --parameters projectName=myai environment=dev adminEmails='["admin@company.com"]'
-```
-
-## Configuration
-
-Edit [config.toml](config.toml) to customize your deployment:
-
-### Key Configuration Sections
-
-#### Project Settings
-```toml
-[project]
-name = "myaiproject"           # Project prefix for all resources
-# Fallback regions - deployment tries each in order (left to right)
-locations = ["eastus", "westus2", "westeurope"]
-environment = "dev"            # Environment: dev, staging, prod
-# Use {location} placeholder to auto-insert selected region
-resourceGroupName = "rg-myaiproject-dev-{location}"
-```
-
-**Region Fallback Feature**: The deployment automatically tests each region in the `locations` array and selects the first one that supports all your enabled services. This ensures successful deployment even if certain services aren't available in your primary region.
-
-#### Admin Users
-```toml
-[admin]
-emails = [
-    "admin1@company.com",
-    "admin2@company.com"
-]
-```
-These users will receive:
-- **Control Plane**: Contributor role at resource group level
-- **Data Plane**: Full access to all service data planes (OpenAI, Cosmos DB, Storage, etc.)
-
-#### Networking
-```toml
-[networking]
-enabled = true                          # Enable VNet and private endpoints
-vnetAddressPrefix = "10.0.0.0/16"
-containerAppsSubnetPrefix = "10.0.0.0/23"
-privateEndpointSubnetPrefix = "10.0.2.0/24"
-sqlSubnetPrefix = "10.0.3.0/24"
-```
-
-#### Service Selection
-```toml
-[services.openai]
-enabled = true
-deployments = [
-    { name = "gpt-4", model = "gpt-4", version = "2024-05-13", capacity = 10 }
-]
-
-[services.cosmosdb]
-enabled = true
-enableNoSQL = true
-enableGremlin = true
-
-[services.datalake]
-enabled = true
-
-[services.sqldb]
-enabled = true
-
-[services.aisearch]
-enabled = true
-
-[services.containerApps]
-enabled = true
-
-[services.containerRegistry]
-enabled = true
-
-[services.keyVault]
-enabled = true
-
-[services.monitoring]
-enabled = true
-```
-
-## Resource Naming Convention
-
-All resources follow a deterministic naming pattern:
-
-**Pattern**: `{projectName}-{service}-{environment}-{location}`
-
-Examples:
-- OpenAI: `myai-openai-dev-eastus`
-- Cosmos DB: `myai-cosmos-dev-eastus`
-- SQL Server: `myai-sql-dev-eastus`
-- Container Apps: `myai-containerapps-env-dev-eastus`
-
-**Note**: Some services (Storage, ACR) have naming restrictions and remove hyphens:
-- Data Lake: `myaidatalakedeveastus`
-- ACR: `myaiacrdeveastus`
-
-## RBAC Permissions
-
-### Managed Identity Permissions
-
-The Container Apps managed identity receives:
-
-| Service | Role |
-|---------|------|
-| OpenAI | Cognitive Services OpenAI User |
-| Cosmos DB | Built-in Data Contributor |
-| Data Lake | Storage Blob Data Contributor |
-| SQL Database | SQL DB Contributor + AAD Authentication |
-| AI Search | Search Index Data Contributor, Search Service Contributor |
-| Key Vault | Key Vault Secrets User |
-| Container Registry | AcrPull |
-
-### Admin User Permissions
-
-Each admin user receives:
-
-| Service | Roles |
-|---------|-------|
-| Resource Group | Contributor |
-| OpenAI | Cognitive Services OpenAI Contributor |
-| Cosmos DB | Account Contributor + Built-in Data Contributor |
-| Data Lake | Storage Blob Data Owner |
-| SQL Database | SQL DB Contributor + SQL Security Manager |
-| AI Search | Search Service Contributor + Search Index Data Contributor |
-| Key Vault | Key Vault Administrator |
-| Container Registry | AcrPush |
-
-## Deployment Outputs
-
-After successful deployment, you'll receive:
-
-- **Service Endpoints**: URLs for OpenAI, Cosmos DB, AI Search, etc.
-- **Managed Identity IDs**: Client ID and Principal ID for the Container Apps identity
-- **Network Information**: VNet ID, subnet IDs
-- **Key Vault URI**: For secrets management
-
-Example output:
-```
-Deployment Outputs:
-  openAIEndpoint: https://myai-openai-dev-eastus.openai.azure.com/
-  cosmosDBEndpoint: https://myai-cosmos-dev-eastus.documents.azure.com:443/
-  containerAppsMIClientId: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-  keyVaultUri: https://myai-kv-dev-eastus.vault.azure.net/
-  sqlServerFQDN: myai-sql-dev-eastus.database.windows.net
-```
-
-## Common Operations
-
-### Update Configuration
-
-1. Edit `config.toml`
-2. Re-run deployment (idempotent - existing resources won't be recreated)
-
-### Add a New Service
-
-1. Enable the service in `config.toml`:
-   ```toml
-   [services.aisearch]
-   enabled = true
-   ```
-2. Re-run deployment
-
-### Add Admin Users
-
-1. Add email to `config.toml`:
-   ```toml
-   [admin]
-   emails = ["existing@company.com", "new@company.com"]
-   ```
-2. Re-run deployment - new user will receive all permissions
-
-### Enable Private Networking
-
-1. Set in `config.toml`:
-   ```toml
-   [networking]
-   enabled = true
-   ```
-2. Re-run deployment - private endpoints will be created
-
-## Project Structure
+### Core Services
+
+| Service | Purpose | Key Features |
+|---------|---------|--------------|
+| **Azure OpenAI** | LLM inference & embeddings | Content filtering, multiple model deployments |
+| **Cosmos DB** | NoSQL & Graph database | Serverless option, geo-replication, analytical storage |
+| **Azure SQL** | Relational database | Zone redundancy, password in Key Vault |
+| **AI Search** | Semantic & vector search | Configurable replicas, semantic tiers |
+| **Container Apps** | Serverless containers | Dapr support, zone redundancy, custom domains |
+| **Container Registry** | Docker images | Geo-replication, private endpoint |
+| **Data Lake Gen2** | Object storage | Hierarchical namespace, private endpoint |
+| **Key Vault** | Secrets management | RBAC, soft delete, SQL password storage |
+| **Monitoring** | Observability | Log Analytics, App Insights, configurable retention |
+
+### Optional Services (NEW)
+
+| Service | Purpose | Key Features |
+|---------|---------|--------------|
+| **API Management** | API gateway | OpenAI proxying, rate limiting, caching |
+| **Azure Front Door** | Global CDN | WAF protection, global load balancing |
+| **Redis Cache** | Caching layer | Chat history, session state |
+| **Azure Policy** | Governance | Required tag enforcement |
+
+### Project Structure
 
 ```
 infra-deployment/
- config.toml                    # Main configuration file
- azure.yaml                     # Azure Developer CLI config
- deploy.ps1                     # PowerShell deployment script
- deploy.sh                      # Bash deployment script
- README.md                      # This file
- infra/
-     main.bicep                 # Main orchestration template
-     main.parameters.json       # Parameters template
-     modules/
-         networking.bicep       # VNet, subnets, NSGs
-         identities.bicep       # Managed identities
-         monitoring.bicep       # Log Analytics, App Insights
-         keyvault.bicep         # Key Vault
-         openai.bicep          # Azure OpenAI Service
-         cosmosdb.bicep        # Cosmos DB
-         datalake.bicep        # Data Lake Gen2
-         sqldb.bicep           # Azure SQL Database
-         aisearch.bicep        # Azure AI Search
-         containerregistry.bicep # Container Registry
-         containerapps.bicep   # Container Apps Environment
-         rbac.bicep            # RBAC assignments
+├── azure.yaml                 # Azure Developer CLI configuration
+├── config.toml                # Your deployment configuration
+├── config.example.toml        # Example configuration template
+├── deploy.ps1                 # PowerShell deployment script
+├── deploy.sh                  # Bash deployment script
+├── validate.ps1               # Pre-deployment validation
+├── QUICKSTART.md              # 5-minute deployment guide
+├── README.md                  # This file
+├── PERMISSIONS_MATRIX.md      # Detailed permission reference
+├── FUTURE_IMPROVEMENTS.md     # Roadmap for enhancements
+└── infra/
+    ├── main.bicep             # Main orchestration template
+    ├── main.parameters.json   # Default parameters
+    └── modules/
+        ├── aisearch.bicep     # Azure AI Search
+        ├── apim.bicep         # API Management (NEW)
+        ├── containerapps.bicep # Container Apps + Dapr
+        ├── containerregistry.bicep # ACR
+        ├── cosmosdb.bicep     # Cosmos DB with SQL roles
+        ├── datalake.bicep     # Data Lake Gen2
+        ├── frontdoor.bicep    # Azure Front Door (NEW)
+        ├── identities.bicep   # Managed Identity
+        ├── keyvault.bicep     # Key Vault
+        ├── monitoring.bicep   # Log Analytics + App Insights
+        ├── networking.bicep   # VNet, subnets, NSGs
+        ├── openai.bicep       # Azure OpenAI
+        ├── policy.bicep       # Azure Policy (NEW)
+        ├── rbac.bicep         # RBAC assignments
+        ├── redis.bicep        # Redis Cache (NEW)
+        └── sqldb.bicep        # Azure SQL Database
 ```
 
-## Security Best Practices
+---
 
-This deployment follows Azure security best practices:
+## Quick Start
 
-1. **Network Isolation**: All services can use private endpoints
-2. **Identity-Based Auth**: Managed identities instead of keys/passwords
-3. **Least Privilege**: RBAC roles scoped to specific services
-4. **Encryption**: All services use encryption at rest and in transit
-5. **Secrets Management**: Sensitive data stored in Key Vault
-6. **Soft Delete**: Key Vault has soft delete enabled (90 days)
-7. **Audit Logging**: All activity logged to Log Analytics
+For a rapid deployment, see [QUICKSTART.md](QUICKSTART.md).
 
-## Troubleshooting
+**TL;DR:**
+```powershell
+# 1. Configure
+Copy-Item config.example.toml config.toml
+# Edit config.toml with your settings
 
-### Deployment Fails with "InvalidTemplate"
+# 2. Deploy
+.\deploy.ps1
+```
 
-Check Bicep syntax:
+---
+
+## Configuration Reference
+
+### Core Configuration
+
+```toml
+[project]
+name = "myaiproject"           # Project name (used in resource naming)
+locations = ["eastus", "westus2", "westeurope"]  # Region fallback list
+environment = "dev"             # dev, staging, prod
+
+[subscription]
+id = ""                        # Optional: specific subscription ID
+
+[admin]
+emails = ["admin@company.com"] # Admin user emails (resolved to Object IDs)
+```
+
+### Governance (NEW)
+
+```toml
+[governance]
+requiredTags = ["reason", "purpose"]  # Tags enforced by Azure Policy
+policyEnforcementMode = "Default"     # "Default" = Deny, "DoNotEnforce" = Audit
+
+[tags]
+Environment = "Development"
+ManagedBy = "AzureDeveloperCLI"
+Project = "AI-LandingZone"
+reason = "AI Landing Zone"      # Required tag
+purpose = "Enterprise AI"       # Required tag
+```
+
+### Network Configuration
+
+```toml
+[network]
+enabled = true                 # Enable VNet isolation
+addressPrefixes = ["10.0.0.0/16"]
+subnets = [
+    { name = "default", prefix = "10.0.0.0/24" },
+    { name = "services", prefix = "10.0.1.0/24" },
+    { name = "data", prefix = "10.0.2.0/24" },
+    { name = "containerApps", prefix = "10.0.3.0/24" },
+    { name = "integration", prefix = "10.0.4.0/24" },
+    { name = "apim", prefix = "10.0.5.0/24" },           # For APIM
+    { name = "privateEndpoints", prefix = "10.0.6.0/24" }
+]
+```
+
+### Services Configuration
+
+#### Azure OpenAI
+
+```toml
+[services.openai]
+enabled = true
+contentFilterPolicy = "default"        # Content filter policy name
+deployments = [
+    { name = "gpt-4", model = "gpt-4", version = "2024-05-13", capacity = 10, raiPolicyName = "" },
+    { name = "gpt-35-turbo", model = "gpt-35-turbo", version = "0613", capacity = 10, raiPolicyName = "" },
+    { name = "text-embedding-ada-002", model = "text-embedding-ada-002", version = "2", capacity = 10, raiPolicyName = "" }
+]
+```
+
+| Option | Description |
+|--------|-------------|
+| `contentFilterPolicy` | Default content filter for all deployments |
+| `deployments[].raiPolicyName` | Per-deployment RAI policy override |
+| `deployments[].capacity` | TPM capacity (in thousands) |
+
+#### Cosmos DB
+
+```toml
+[services.cosmosdb]
+enabled = true
+enableNoSQL = true              # Enable SQL API
+enableGremlin = true            # Enable Graph API
+consistencyLevel = "Session"    # Consistency level
+enableServerless = false        # Serverless mode (cost-effective for dev)
+enableAnalyticalStorage = false # Analytical storage for HTAP
+additionalRegions = []          # e.g., ["westus2", "westeurope"]
+```
+
+| Option | Description |
+|--------|-------------|
+| `enableServerless` | Use serverless capacity mode (no RU provisioning) |
+| `enableAnalyticalStorage` | Enable analytical store for Azure Synapse Link |
+| `additionalRegions` | Multi-region write support locations |
+
+#### Azure SQL Database
+
+```toml
+[services.sqldb]
+enabled = true
+databaseSku = "S1"             # SKU tier
+zoneRedundant = false          # Zone redundancy (production)
+```
+
+The SQL admin password is automatically:
+1. Generated with strong random characters
+2. Stored in Key Vault as `sql-admin-password`
+3. Connection string stored as `sql-connection-string`
+
+#### AI Search
+
+```toml
+[services.aisearch]
+enabled = true
+sku = "standard"               # basic, standard, standard2, standard3
+replicaCount = 1               # 1-12 replicas
+partitionCount = 1             # 1, 2, 3, 4, 6, or 12
+semanticSearchTier = "free"    # "free", "standard", or "disabled"
+```
+
+#### Container Apps
+
+```toml
+[services.containerApps]
+enabled = true
+enableDapr = false             # Enable Dapr sidecar
+zoneRedundant = false          # Zone redundancy
+customDomainName = ""          # Custom domain (e.g., "apps.company.com")
+customDomainCertificateId = "" # Certificate resource ID
+```
+
+#### Container Registry
+
+```toml
+[services.containerRegistry]
+enabled = true
+sku = "Premium"                       # Basic, Standard, Premium
+geoReplicationLocations = []          # Geo-replication locations
+```
+
+#### Key Vault
+
+```toml
+[services.keyVault]
+enabled = true
+sku = "standard"                      # standard or premium
+softDeleteRetentionInDays = 90        # 7-90 days
+```
+
+#### Monitoring
+
+```toml
+[services.monitoring]
+enabled = true
+retentionInDays = 30                  # Log retention (30-730)
+```
+
+### Optional Services (NEW)
+
+#### API Management
+
+```toml
+[services.apim]
+enabled = false
+sku = "Developer"                     # Developer, Basic, Standard, Premium
+capacity = 1                          # Instance count
+publisherEmail = "api@company.com"    # Required
+publisherName = "Your Company"        # Required
+enableOpenAIProxy = true              # Proxy OpenAI calls
+enableSearchProxy = true              # Proxy AI Search calls
+rateLimitCallsPerMinute = 100         # Rate limiting
+enableCaching = false                 # Response caching
+cacheDurationSeconds = 300            # Cache TTL
+```
+
+#### Azure Front Door
+
+```toml
+[services.frontDoor]
+enabled = false
+enableWaf = true                      # Web Application Firewall
+wafMode = "Prevention"                # "Detection" or "Prevention"
+```
+
+#### Redis Cache
+
+```toml
+[services.redis]
+enabled = false
+sku = "Standard"                      # Basic, Standard, Premium
+capacity = 1                          # Cache size (0-6)
+```
+
+#### Azure Policy
+
+```toml
+[policy]
+enabled = true
+requiredTags = ["reason", "purpose"]  # Tags to enforce
+enforcementMode = "Default"           # "Default" (Deny) or "DoNotEnforce" (Audit)
+```
+
+---
+
+## Services Reference
+
+### Enabled by Default
+
+| Service | Config Key | Resources Created |
+|---------|------------|-------------------|
+| OpenAI | `services.openai` | OpenAI account, model deployments, private endpoint |
+| Cosmos DB | `services.cosmosdb` | Account, databases, SQL role assignments, private endpoint |
+| SQL DB | `services.sqldb` | Server, database, firewall rules, private endpoint |
+| AI Search | `services.aisearch` | Search service, private endpoint |
+| Container Apps | `services.containerApps` | Environment, managed identity |
+| Container Registry | `services.containerRegistry` | Registry, private endpoint |
+| Data Lake | `services.dataLake` | Storage account, containers, private endpoint |
+| Key Vault | `services.keyVault` | Vault, access policies, private endpoint |
+| Monitoring | `services.monitoring` | Log Analytics, App Insights |
+| Networking | `network` | VNet, subnets, NSGs, private DNS zones |
+
+### Optional (Disabled by Default)
+
+| Service | Config Key | When to Enable |
+|---------|------------|----------------|
+| APIM | `services.apim` | API gateway for rate limiting, caching |
+| Front Door | `services.frontDoor` | Global CDN with WAF |
+| Redis | `services.redis` | Chat history, session caching |
+| Policy | `policy` | Tag enforcement and governance |
+
+---
+
+## Security Model
+
+### Identity & Access
+
+| Identity Type | Purpose |
+|---------------|---------|
+| **User-Assigned Managed Identity** | Service-to-service authentication |
+| **Admin Object IDs** | Admin user access to all resources |
+
+### RBAC Roles Assigned
+
+See [PERMISSIONS_MATRIX.md](PERMISSIONS_MATRIX.md) for detailed role assignments.
+
+**Key improvements:**
+- Admin emails automatically resolved to Object IDs
+- Cosmos DB uses SQL Role Assignments (not Azure RBAC) for data plane
+- SQL password stored in Key Vault automatically
+
+### Network Security
+
+| Feature | Description |
+|---------|-------------|
+| **VNet Isolation** | All services in private VNet |
+| **Private Endpoints** | No public internet exposure |
+| **Private DNS Zones** | VNet-linked for name resolution |
+| **NSGs** | Network security groups on subnets |
+
+---
+
+## Network Architecture
+
+### Private DNS Zones
+
+When VNet is enabled, these private DNS zones are created with VNet links:
+
+| Zone | Services |
+|------|----------|
+| `privatelink.openai.azure.com` | Azure OpenAI |
+| `privatelink.documents.azure.com` | Cosmos DB |
+| `privatelink.database.windows.net` | Azure SQL |
+| `privatelink.search.windows.net` | AI Search |
+| `privatelink.blob.core.windows.net` | Data Lake |
+| `privatelink.dfs.core.windows.net` | Data Lake (DFS) |
+| `privatelink.vaultcore.azure.net` | Key Vault |
+| `privatelink.azurecr.io` | Container Registry |
+| `privatelink.redis.cache.windows.net` | Redis Cache |
+| `privatelink.azure-api.net` | API Management |
+
+All zones are automatically linked to the VNet for proper name resolution.
+
+---
+
+## Deployment
+
+### Prerequisites
+
+- Azure CLI installed and authenticated
+- PowerShell 7+ (Windows) or Bash (Linux/Mac)
+- Contributor + User Access Administrator on subscription
+- Azure AD permissions to read user objects
+
+### Deployment Methods
+
+#### Method 1: PowerShell Script (Recommended)
+
+```powershell
+.\deploy.ps1
+```
+
+#### Method 2: Bash Script
+
 ```bash
-az bicep build --file infra/main.bicep
+./deploy.sh
 ```
 
-### "Insufficient Permissions" Error
+#### Method 3: Azure Developer CLI
 
-Ensure you have:
-- Owner or Contributor role on the subscription
-- User Access Administrator role (for RBAC assignments)
-
-### Admin User Email Not Found
-
-The admin emails must be valid Azure AD user principal names (UPNs). Check:
 ```bash
-az ad user show --id admin@company.com
+azd up
 ```
 
-### Private Endpoint Issues
+### What Happens During Deployment
 
-Ensure:
-- VNet is enabled in config
-- Subnet has sufficient address space
-- No conflicting NSG rules
+1. **Configuration Loading**: Reads `config.toml`
+2. **Email Resolution**: Converts admin emails to Object IDs
+3. **Region Testing**: Checks service availability per region
+4. **Region Selection**: Picks first available region
+5. **Resource Group Creation**: Creates or uses existing RG
+6. **Bicep Deployment**: Deploys all enabled modules
+7. **Output Display**: Shows endpoints and connection info
 
-### Region Not Available for Services
+### Validation
 
-The deployment has **automatic region fallback**. If deployment fails due to region availability:
+Before deploying, validate your configuration:
 
-1. **Check your locations array** in config.toml:
-   ```toml
-   locations = ["eastus", "westus2", "westeurope"]
-   ```
+```powershell
+.\validate.ps1
+```
 
-2. **Add more fallback regions**:
-   - North America: `["eastus", "westus2", "southcentralus", "centralus"]`
-   - Europe: `["westeurope", "northeurope", "uksouth"]`
-   - Global: `["eastus", "westus2", "westeurope", "southeastasia"]`
+This checks:
+- Configuration syntax
+- Required fields
+- Azure login status
+- Permission levels
 
-3. **Verify service availability**: [Azure Products by Region](https://azure.microsoft.com/global-infrastructure/services/)
-
-4. **Disable unavailable services** in config.toml if not critical
-
-The deployment script automatically tests each region and selects the first one that supports all enabled services.
-
-### Service Quota Limits
-
-Some services have regional quotas. Request increases at:
-https://portal.azure.com/#blade/Microsoft_Azure_Support/HelpAndSupportBlade/quotas
+---
 
 ## Cost Estimation
 
-Approximate monthly costs (US East, pay-as-you-go):
+### Development Environment (Minimal)
 
-| Service | SKU | Est. Cost/Month |
-|---------|-----|-----------------|
-| OpenAI | S0 | Pay per token (~$100-$500) |
-| Cosmos DB | 400 RU/s | ~$24 |
-| Data Lake | Standard LRS | ~$20/TB |
-| SQL Database | S1 | ~$30 |
-| AI Search | Standard | ~$250 |
-| Container Apps | Consumption | Pay per use (~$10-$50) |
-| Container Registry | Premium | ~$167 |
-| Key Vault | Standard | ~$0.03/10K ops |
-| Log Analytics | Pay-as-you-go | ~$2.30/GB |
+| Service | Configuration | Est. Monthly Cost |
+|---------|---------------|-------------------|
+| OpenAI | GPT-4 @ 10K TPM | $50-200 |
+| Cosmos DB | Serverless | $0-50 |
+| SQL DB | S1 | ~$30 |
+| AI Search | Basic | ~$70 |
+| Container Apps | Consumption | $0-20 |
+| ACR | Standard | ~$20 |
+| Key Vault | Standard | ~$3 |
+| Monitoring | 30 days | ~$10 |
+| **Total** | | **~$200-400/month** |
 
-**Total Est.**: $500-$1000/month (excluding data storage and usage)
+### Production Environment (Recommended)
 
-Use the [Azure Pricing Calculator](https://azure.microsoft.com/pricing/calculator/) for accurate estimates.
+| Service | Configuration | Est. Monthly Cost |
+|---------|---------------|-------------------|
+| OpenAI | GPT-4 @ 50K TPM | $200-1000 |
+| Cosmos DB | Provisioned + Geo | $200-500 |
+| SQL DB | S3 + Zone Redundant | ~$150 |
+| AI Search | Standard S2 | ~$250 |
+| Container Apps | Zone Redundant | $50-200 |
+| ACR | Premium + Geo | ~$50 |
+| Key Vault | Premium | ~$10 |
+| Monitoring | 90 days | ~$50 |
+| APIM | Standard | ~$350 |
+| Front Door | Standard + WAF | ~$100 |
+| Redis | Standard | ~$50 |
+| **Total** | | **~$1500-2500/month** |
 
-## Support & Contributing
+*Costs vary based on usage. Use [Azure Pricing Calculator](https://azure.microsoft.com/pricing/calculator/) for accurate estimates.*
 
-For issues or questions:
-- Check the troubleshooting section above
-- Review Azure documentation for specific services
-- Open an issue in your repository
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### "No regions support all required services"
+
+```
+Solution: 
+1. Add more regions to config.toml locations array
+2. Disable services you don't need
+3. Check Azure region availability: https://azure.microsoft.com/global-infrastructure/services/
+```
+
+#### "User not found in Azure AD"
+
+```
+Solution:
+- Verify the email is a valid Azure AD UPN
+- Ensure you have permission to read user objects
+- For guest users, use their full email including #EXT#
+```
+
+#### "Insufficient permissions"
+
+```
+Solution:
+- Ensure you have Contributor role on subscription
+- Ensure you have User Access Administrator for RBAC
+- For Cosmos DB data plane, SQL Role Assignments are created automatically
+```
+
+#### "Private endpoint DNS not resolving"
+
+```
+Solution:
+1. Verify VNet is enabled in config
+2. Check DNS zone VNet links exist in Azure portal
+3. Restart client to refresh DNS cache
+4. If using Azure VM, ensure it's in the same VNet
+```
+
+#### "SQL password not in Key Vault"
+
+```
+Solution:
+- Password is stored as 'sql-admin-password' secret
+- Ensure Key Vault is enabled in config
+- Verify deployment completed successfully
+```
+
+### Logs and Diagnostics
+
+```bash
+# Check deployment status
+az deployment group show --name main --resource-group <RG_NAME>
+
+# View deployment operations
+az deployment group operation list --name main --resource-group <RG_NAME>
+
+# Query Log Analytics
+az monitor log-analytics query \
+  --workspace <WORKSPACE_ID> \
+  --analytics-query "AzureDiagnostics | take 10"
+```
+
+---
+
+## Future Roadmap
+
+See [FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md) for planned enhancements including:
+
+- GitHub Actions / Azure Pipelines CI/CD
+- Disaster Recovery configuration
+- Azure Firewall integration
+- Azure Bastion for secure access
+- Backup and restore automation
+- Multi-environment (dev/staging/prod) templates
+- Terraform port of Bicep templates
+- Cost management and budgets
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test with `.\validate.ps1`
+5. Deploy to a test environment
+6. Submit a pull request
+
+### Development Guidelines
+
+- Follow Bicep best practices
+- Add new services as separate modules
+- Update config.example.toml with new options
+- Document new parameters in this README
+- Update PERMISSIONS_MATRIX.md for RBAC changes
+
+---
 
 ## License
 
-This infrastructure code is provided as-is for use with Azure AI projects.
+MIT License - see LICENSE file for details.
 
-## Next Steps
+---
 
-After deployment:
+## Support
 
-1. **Verify Resources**: Check Azure Portal for all deployed resources
-2. **Test Connectivity**: Use managed identity to connect to services
-3. **Deploy Application**: Deploy your AI application to Container Apps
-4. **Configure Monitoring**: Set up alerts in Application Insights
-5. **Backup & DR**: Configure backup policies for stateful services
+- **Issues**: Open a GitHub issue
+- **Documentation**: See linked markdown files
+- **Azure Docs**: [Azure AI Services](https://learn.microsoft.com/azure/ai-services/)
 
-## Additional Resources
+---
 
-- [Azure OpenAI Service Documentation](https://learn.microsoft.com/azure/ai-services/openai/)
-- [Azure Cosmos DB Documentation](https://learn.microsoft.com/azure/cosmos-db/)
-- [Azure AI Search Documentation](https://learn.microsoft.com/azure/search/)
-- [Azure Container Apps Documentation](https://learn.microsoft.com/azure/container-apps/)
-- [Azure Developer CLI Documentation](https://learn.microsoft.com/azure/developer/azure-developer-cli/)
-- [Bicep Documentation](https://learn.microsoft.com/azure/azure-resource-manager/bicep/)
+## Acknowledgments
+
+Built with:
+- [Azure Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/)
+- [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/)
+- [Azure AI Services](https://azure.microsoft.com/products/ai-services/)
+
+---
+
+**Ready to deploy?** Start with [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup! 🚀

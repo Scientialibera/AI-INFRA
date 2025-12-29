@@ -236,15 +236,20 @@ if (-not $rgExists) {
 
 # Build parameters for Bicep deployment
 $parameters = @{
+    # Core parameters
     projectName = $projectName
     location = $selectedLocation
     environment = $environment
-    adminEmails = $adminObjectIds
+    adminObjectIds = $adminObjectIds
+    
+    # Networking
     enableVNet = $config.networking.enabled
     vnetAddressPrefix = $config.networking.vnetAddressPrefix
     containerAppsSubnetPrefix = $config.networking.containerAppsSubnetPrefix
     privateEndpointSubnetPrefix = $config.networking.privateEndpointSubnetPrefix
     sqlSubnetPrefix = $config.networking.sqlSubnetPrefix
+    
+    # Service enablement flags
     enableOpenAI = $config.services.openai.enabled
     enableCosmosDB = $config.services.cosmosdb.enabled
     enableDataLake = $config.services.datalake.enabled
@@ -254,16 +259,71 @@ $parameters = @{
     enableContainerRegistry = $config.services.containerRegistry.enabled
     enableKeyVault = $config.services.keyVault.enabled
     enableMonitoring = $config.services.monitoring.enabled
+    enableAPIM = if ($config.services.apim) { $config.services.apim.enabled } else { $false }
+    enableFrontDoor = if ($config.services.frontDoor) { $config.services.frontDoor.enabled } else { $false }
+    enableRedis = if ($config.services.redis) { $config.services.redis.enabled } else { $false }
+    enablePolicy = if ($config.policy) { $config.policy.enabled } else { $false }
+    
+    # OpenAI parameters
     openAIDeployments = $config.services.openai.deployments
+    openAIContentFilterPolicy = if ($config.services.openai.contentFilterPolicy) { $config.services.openai.contentFilterPolicy } else { "default" }
+    
+    # Cosmos DB parameters
     cosmosEnableNoSQL = $config.services.cosmosdb.enableNoSQL
     cosmosEnableGremlin = $config.services.cosmosdb.enableGremlin
     cosmosConsistencyLevel = $config.services.cosmosdb.consistencyLevel
+    cosmosEnableServerless = if ($config.services.cosmosdb.enableServerless) { $config.services.cosmosdb.enableServerless } else { $false }
+    cosmosEnableAnalyticalStorage = if ($config.services.cosmosdb.enableAnalyticalStorage) { $config.services.cosmosdb.enableAnalyticalStorage } else { $false }
+    cosmosAdditionalRegions = if ($config.services.cosmosdb.additionalRegions) { $config.services.cosmosdb.additionalRegions } else { @() }
+    
+    # SQL parameters
     sqlDatabaseSku = $config.services.sqldb.databaseSku
     sqlAdminUsername = $config.services.sqldb.adminUsername
-    sqlAllowedIpRanges = $config.services.sqldb.allowedIpRanges
+    sqlAllowedIpRanges = if ($config.services.sqldb.allowedIpRanges) { $config.services.sqldb.allowedIpRanges } else { @() }
+    sqlZoneRedundant = if ($config.services.sqldb.zoneRedundant) { $config.services.sqldb.zoneRedundant } else { $false }
+    
+    # AI Search parameters
     aiSearchSku = $config.services.aisearch.sku
+    aiSearchReplicaCount = if ($config.services.aisearch.replicaCount) { $config.services.aisearch.replicaCount } else { 1 }
+    aiSearchPartitionCount = if ($config.services.aisearch.partitionCount) { $config.services.aisearch.partitionCount } else { 1 }
+    aiSearchSemanticTier = if ($config.services.aisearch.semanticSearchTier) { $config.services.aisearch.semanticSearchTier } else { "free" }
+    
+    # Container Apps parameters
+    containerAppsEnableDapr = if ($config.services.containerApps.enableDapr) { $config.services.containerApps.enableDapr } else { $false }
+    containerAppsZoneRedundant = if ($config.services.containerApps.zoneRedundant) { $config.services.containerApps.zoneRedundant } else { $false }
+    containerAppsCustomDomain = if ($config.services.containerApps.customDomain) { $config.services.containerApps.customDomain } else { @{} }
+    
+    # Container Registry parameters
     containerRegistrySku = $config.services.containerRegistry.sku
+    containerRegistryGeoReplicationLocations = if ($config.services.containerRegistry.geoReplicationLocations) { $config.services.containerRegistry.geoReplicationLocations } else { @() }
+    
+    # Data Lake parameters
     dataLakeSku = $config.services.datalake.sku
+    
+    # Key Vault parameters
+    keyVaultSku = if ($config.services.keyVault.sku) { $config.services.keyVault.sku } else { "standard" }
+    keyVaultSoftDeleteRetentionDays = if ($config.services.keyVault.softDeleteRetentionInDays) { $config.services.keyVault.softDeleteRetentionInDays } else { 90 }
+    
+    # Monitoring parameters
+    logAnalyticsRetentionDays = if ($config.services.monitoring.retentionInDays) { $config.services.monitoring.retentionInDays } else { 30 }
+    
+    # APIM parameters
+    apimPublisherEmail = if ($config.services.apim.publisherEmail) { $config.services.apim.publisherEmail } else { "" }
+    apimPublisherName = if ($config.services.apim.publisherName) { $config.services.apim.publisherName } else { "" }
+    apimSku = if ($config.services.apim.sku) { $config.services.apim.sku } else { "Developer" }
+    
+    # Front Door parameters
+    frontDoorEnableWaf = if ($config.services.frontDoor.enableWaf) { $config.services.frontDoor.enableWaf } else { $false }
+    
+    # Redis parameters
+    redisSku = if ($config.services.redis.sku) { $config.services.redis.sku } else { "Standard" }
+    redisCapacity = if ($config.services.redis.capacity) { $config.services.redis.capacity } else { 1 }
+    
+    # Policy parameters
+    requiredTags = if ($config.policy.requiredTags) { $config.policy.requiredTags } else { @("reason", "purpose") }
+    policyEnforcementMode = if ($config.policy.enforcementMode) { $config.policy.enforcementMode } else { "Default" }
+    
+    # Tags
     tags = $config.tags
 }
 

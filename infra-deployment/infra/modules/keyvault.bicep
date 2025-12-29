@@ -4,23 +4,26 @@ param location string
 param keyVaultName string
 param enableVNet bool
 param privateEndpointSubnetId string
+param vnetId string = ''
 param containerAppsMIObjectId string
+param skuName string = 'standard'
+param softDeleteRetentionInDays int = 90
 param tags object = {}
 
 // Key Vault
-resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
+resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
   location: location
   tags: tags
   properties: {
     sku: {
       family: 'A'
-      name: 'standard'
+      name: skuName
     }
     tenantId: subscription().tenantId
     enableRbacAuthorization: true
     enableSoftDelete: true
-    softDeleteRetentionInDays: 90
+    softDeleteRetentionInDays: softDeleteRetentionInDays
     enablePurgeProtection: true
     networkAcls: enableVNet ? {
       bypass: 'AzureServices'
@@ -62,6 +65,19 @@ resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (ena
   name: 'privatelink.vaultcore.azure.net'
   location: 'global'
   tags: tags
+}
+
+// VNet Link for Private DNS Zone
+resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (enableVNet) {
+  parent: privateDnsZone
+  name: '${keyVaultName}-vnet-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnetId
+    }
+  }
 }
 
 // Private DNS Zone Group

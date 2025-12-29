@@ -1,6 +1,9 @@
 # Azure AI Landing Zone Configuration
 # This configuration file defines all settings for deploying an enterprise-grade AI infrastructure
 
+# =============================================================================
+# PROJECT SETTINGS
+# =============================================================================
 [project]
 # Project prefix - used for naming all resources (keep it short, alphanumeric only)
 name = "myaiproject"
@@ -14,33 +17,42 @@ environment = "dev"
 # Note: {location} will be replaced with the successfully deployed region
 resourceGroupName = "rg-myaiproject-dev"
 
+# =============================================================================
+# ADMIN USERS
+# =============================================================================
 [admin]
 # List of admin user emails - these users will get full control plane and data plane access
 # Format: ["user1@domain.com", "user2@domain.com"]
+# Note: These are resolved to Azure AD Object IDs during deployment
 emails = [
     "admin1@contoso.com",
     "admin2@contoso.com"
 ]
 
+# =============================================================================
+# NETWORKING
+# =============================================================================
 [networking]
 # Enable Virtual Network with private endpoints for secure networking
 enabled = true
 # VNet address space
 vnetAddressPrefix = "10.0.0.0/16"
-# Subnet for Container Apps
+# Subnet for Container Apps (minimum /23 required)
 containerAppsSubnetPrefix = "10.0.0.0/23"
 # Subnet for private endpoints
 privateEndpointSubnetPrefix = "10.0.2.0/24"
 # Subnet for SQL integration
 sqlSubnetPrefix = "10.0.3.0/24"
 
-[services]
-# Enable/disable individual services as needed
-
+# =============================================================================
+# AZURE OPENAI SERVICE
+# =============================================================================
 [services.openai]
 enabled = true
 # SKU: S0 (standard)
 sku = "S0"
+# Content filter policy name (default, or custom policy name)
+contentFilterPolicy = "default"
 # Deployments to create
 deployments = [
     { name = "gpt-4", model = "gpt-4", version = "2024-05-13", capacity = 10 },
@@ -48,6 +60,9 @@ deployments = [
     { name = "text-embedding-ada-002", model = "text-embedding-ada-002", version = "2", capacity = 10 }
 ]
 
+# =============================================================================
+# COSMOS DB
+# =============================================================================
 [services.cosmosdb]
 enabled = true
 # Enable NoSQL API (document database)
@@ -56,52 +71,80 @@ enableNoSQL = true
 enableGremlin = true
 # Consistency level: Strong, BoundedStaleness, Session, ConsistentPrefix, Eventual
 consistencyLevel = "Session"
-# Enable automatic failover
-automaticFailover = true
+# Enable serverless mode (cost-effective for dev/test)
+enableServerless = false
+# Enable analytical storage for analytics workloads
+enableAnalyticalStorage = false
+# Additional regions for geo-replication
+additionalRegions = []
 
+# =============================================================================
+# DATA LAKE STORAGE
+# =============================================================================
 [services.datalake]
 enabled = true
-# SKU: Standard_LRS, Standard_GRS, Standard_RAGRS, Standard_ZRS
+# SKU: Standard_LRS, Standard_GRS, Standard_RAGRS, Standard_ZRS, Premium_LRS, Premium_ZRS
 sku = "Standard_LRS"
 # Enable hierarchical namespace (required for Data Lake Gen2)
 isHnsEnabled = true
 
+# =============================================================================
+# SQL DATABASE
+# =============================================================================
 [services.sqldb]
 enabled = true
 # SQL Server admin username
 adminUsername = "sqladmin"
-# SKU: Basic, S0, S1, S2, P1, P2, etc.
+# SKU: Basic, S0, S1, S2, S3, P1, P2, P4, P6, P11, P15
 databaseSku = "S1"
 # Enable Azure AD authentication
 enableAzureADAuth = true
+# Enable zone redundancy (Premium tier only)
+zoneRedundant = false
 # Whitelist specific IP addresses (CIDR notation)
-# Leave empty to allow only Azure services (when VNet disabled) or VNet only (when VNet enabled)
-allowedIpRanges = [
-    # Example: "203.0.113.0/24",
-    # Example: "198.51.100.42/32"
-]
+allowedIpRanges = []
 
+# =============================================================================
+# AI SEARCH
+# =============================================================================
 [services.aisearch]
 enabled = true
-# SKU: free, basic, standard, standard2, standard3, storage_optimized_l1, storage_optimized_l2
+# SKU: free, basic, standard, standard2, standard3
 sku = "standard"
 # Number of replicas
 replicaCount = 1
 # Number of partitions
 partitionCount = 1
+# Semantic search tier: free, standard
+semanticSearchTier = "free"
 
+# =============================================================================
+# CONTAINER APPS
+# =============================================================================
 [services.containerApps]
 enabled = true
 # Enable workload profiles for more control
 enableWorkloadProfiles = false
+# Enable Dapr for microservices
+enableDapr = false
+# Enable zone redundancy
+zoneRedundant = false
 
+# =============================================================================
+# CONTAINER REGISTRY
+# =============================================================================
 [services.containerRegistry]
 enabled = true
-# SKU: Basic, Standard, Premium (Premium required for private endpoints)
+# SKU: Basic, Standard, Premium
 sku = "Premium"
 # Enable admin user (not recommended for production)
 adminUserEnabled = false
+# Geo-replication locations (Premium SKU only)
+geoReplicationLocations = []
 
+# =============================================================================
+# KEY VAULT
+# =============================================================================
 [services.keyVault]
 enabled = true
 # SKU: standard, premium
@@ -110,16 +153,55 @@ sku = "standard"
 enableRbacAuthorization = true
 # Enable soft delete
 enableSoftDelete = true
-# Soft delete retention days
+# Soft delete retention days (7-90)
 softDeleteRetentionInDays = 90
 
+# =============================================================================
+# MONITORING
+# =============================================================================
 [services.monitoring]
 enabled = true
-# Log Analytics retention in days
+# Log Analytics retention in days (30-730)
 retentionInDays = 30
 
+# =============================================================================
+# API MANAGEMENT (Optional)
+# =============================================================================
+[services.apim]
+enabled = false
+publisherEmail = ""
+publisherName = ""
+sku = "Developer"
+
+# =============================================================================
+# AZURE FRONT DOOR (Optional)
+# =============================================================================
+[services.frontDoor]
+enabled = false
+enableWaf = false
+
+# =============================================================================
+# REDIS CACHE (Optional)
+# =============================================================================
+[services.redis]
+enabled = false
+sku = "Standard"
+capacity = 1
+
+# =============================================================================
+# AZURE POLICY (Optional)
+# =============================================================================
+[policy]
+enabled = false
+requiredTags = ["reason", "purpose"]
+enforcementMode = "Default"
+
+# =============================================================================
+# RESOURCE TAGS
+# =============================================================================
 [tags]
-# Custom tags to apply to all resources
 Environment = "Development"
 ManagedBy = "AzureDeveloperCLI"
 Project = "AI-LandingZone"
+reason = "AI Landing Zone Infrastructure"
+purpose = "Enterprise AI Platform"

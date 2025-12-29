@@ -13,20 +13,20 @@ Write-Host "Checking prerequisites..." -ForegroundColor Yellow
 
 # Check Azure CLI
 if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
-    Write-Host "✗ Azure CLI not found" -ForegroundColor Red
+    Write-Host " Azure CLI not found" -ForegroundColor Red
     Write-Host "  Install from: https://aka.ms/azure-cli" -ForegroundColor Yellow
     exit 1
 } else {
     $azVersion = (az version --output json | ConvertFrom-Json).'azure-cli'
-    Write-Host "✓ Azure CLI installed (version $azVersion)" -ForegroundColor Green
+    Write-Host " Azure CLI installed (version $azVersion)" -ForegroundColor Green
 }
 
 # Check Azure CLI login
 try {
     $account = az account show 2>$null | ConvertFrom-Json
-    Write-Host "✓ Logged in to Azure (Subscription: $($account.name))" -ForegroundColor Green
+    Write-Host " Logged in to Azure (Subscription: $($account.name))" -ForegroundColor Green
 } catch {
-    Write-Host "✗ Not logged in to Azure" -ForegroundColor Red
+    Write-Host " Not logged in to Azure" -ForegroundColor Red
     Write-Host "  Run: az login" -ForegroundColor Yellow
     exit 1
 }
@@ -35,9 +35,9 @@ try {
 try {
     az bicep version | Out-Null
     $bicepVersion = az bicep version
-    Write-Host "✓ Bicep installed ($bicepVersion)" -ForegroundColor Green
+    Write-Host " Bicep installed ($bicepVersion)" -ForegroundColor Green
 } catch {
-    Write-Host "✗ Bicep not found" -ForegroundColor Red
+    Write-Host " Bicep not found" -ForegroundColor Red
     Write-Host "  Installing Bicep..." -ForegroundColor Yellow
     az bicep install
 }
@@ -46,10 +46,10 @@ try {
 Write-Host "`nValidating configuration..." -ForegroundColor Yellow
 
 if (-not (Test-Path $ConfigFile)) {
-    Write-Host "✗ Config file not found: $ConfigFile" -ForegroundColor Red
+    Write-Host " Config file not found: $ConfigFile" -ForegroundColor Red
     exit 1
 } else {
-    Write-Host "✓ Config file found: $ConfigFile" -ForegroundColor Green
+    Write-Host " Config file found: $ConfigFile" -ForegroundColor Green
 }
 
 # Validate Bicep templates
@@ -74,7 +74,7 @@ $bicepFiles = @(
 $allValid = $true
 foreach ($bicepFile in $bicepFiles) {
     if (-not (Test-Path $bicepFile)) {
-        Write-Host "✗ Missing: $bicepFile" -ForegroundColor Red
+        Write-Host " Missing: $bicepFile" -ForegroundColor Red
         $allValid = $false
         continue
     }
@@ -82,14 +82,14 @@ foreach ($bicepFile in $bicepFiles) {
     try {
         $result = az bicep build --file $bicepFile --stdout 2>&1
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Valid: $bicepFile" -ForegroundColor Green
+            Write-Host " Valid: $bicepFile" -ForegroundColor Green
         } else {
-            Write-Host "✗ Invalid: $bicepFile" -ForegroundColor Red
+            Write-Host " Invalid: $bicepFile" -ForegroundColor Red
             Write-Host "  Error: $result" -ForegroundColor Yellow
             $allValid = $false
         }
     } catch {
-        Write-Host "✗ Error validating: $bicepFile" -ForegroundColor Red
+        Write-Host " Error validating: $bicepFile" -ForegroundColor Red
         Write-Host "  $_" -ForegroundColor Yellow
         $allValid = $false
     }
@@ -104,25 +104,25 @@ Write-Host "(This shows what would be created/modified/deleted)`n" -ForegroundCo
 try {
     az bicep build --file infra/main.bicep --stdout > $null 2>&1
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Main template builds successfully" -ForegroundColor Green
+        Write-Host " Main template builds successfully" -ForegroundColor Green
     } else {
-        Write-Host "✗ Main template has errors" -ForegroundColor Red
+        Write-Host " Main template has errors" -ForegroundColor Red
         $allValid = $false
     }
 } catch {
-    Write-Host "✗ Failed to build main template" -ForegroundColor Red
+    Write-Host " Failed to build main template" -ForegroundColor Red
     $allValid = $false
 }
 
 # Summary
 Write-Host "`n==========================================`n" -ForegroundColor Cyan
 if ($allValid) {
-    Write-Host "✓ All validations passed!" -ForegroundColor Green
+    Write-Host " All validations passed!" -ForegroundColor Green
     Write-Host "`nYou can now deploy using:" -ForegroundColor Cyan
     Write-Host "  .\deploy.ps1" -ForegroundColor Yellow
     Write-Host "Or preview changes with:" -ForegroundColor Cyan
     Write-Host "  .\deploy.ps1 -WhatIf" -ForegroundColor Yellow
 } else {
-    Write-Host "✗ Validation failed - please fix errors above" -ForegroundColor Red
+    Write-Host " Validation failed - please fix errors above" -ForegroundColor Red
     exit 1
 }

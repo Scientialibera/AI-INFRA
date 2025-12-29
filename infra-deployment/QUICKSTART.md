@@ -5,23 +5,23 @@ Deploy your enterprise AI infrastructure in 30 minutes with automatic region fal
 ## What You'll Get
 
 ### Core Services
-- ✅ Azure OpenAI (GPT-4, GPT-3.5, embeddings) with content filtering
-- ✅ Cosmos DB (NoSQL + Graph) with serverless & geo-replication options
-- ✅ Data Lake Gen2 for storage
-- ✅ Azure SQL Database with zone redundancy option
-- ✅ Azure AI Search with semantic/vector search
-- ✅ Container Apps environment with Dapr & zone redundancy
-- ✅ Container Registry with geo-replication
-- ✅ Key Vault for secrets (stores SQL password automatically)
-- ✅ Full monitoring setup with configurable retention
-- ✅ Secure networking with private DNS zone VNet links
-- ✅ **Automatic region fallback** for resilient deployment
+-  Azure OpenAI (GPT-4, GPT-3.5, embeddings) with content filtering
+-  Cosmos DB (NoSQL + Graph) with serverless & geo-replication options
+-  Data Lake Gen2 for storage
+-  Azure SQL Database with zone redundancy option
+-  Azure AI Search with semantic/vector search
+-  Container Apps environment with Dapr & zone redundancy
+-  Container Registry with geo-replication
+-  Key Vault for secrets (stores SQL password automatically)
+-  Full monitoring setup with configurable retention
+-  Secure networking with private DNS zone VNet links
+-  **Automatic region fallback** for resilient deployment
 
 ### Optional Services (NEW)
-- 🔹 API Management - API gateway for AI services
-- 🔹 Azure Front Door - Global CDN with WAF
-- 🔹 Redis Cache - For chat history/caching
-- 🔹 Azure Policy - Enforce required tags
+-  API Management - API gateway for AI services
+-  Azure Front Door - Global CDN with WAF
+-  Redis Cache - For chat history/caching
+-  Azure Policy - Enforce required tags
 
 ---
 
@@ -75,16 +75,16 @@ Deployment Configuration:
 
 Resolving admin user Object IDs...
   Looking up: your.email@company.com
-    ✓ Found: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+     Found: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 Testing region availability...
   Testing region: eastus...
     Checking OpenAI availability...
     Checking Cosmos DB availability...
     Checking Container Apps availability...
-    ✓ Region eastus supports all required services
+     Region eastus supports all required services
 
-✓ Selected region: eastus
+ Selected region: eastus
 
 Deploying infrastructure...
 ```
@@ -196,7 +196,7 @@ purpose = "Enterprise AI Platform"         # Required by policy
 
 ---
 
-## Region Fallback Feature 🌍
+## Region Fallback Feature 
 
 ### How It Works
 
@@ -229,32 +229,32 @@ locations = ["eastus", "westus2", "westeurope", "southeastasia", "australiaeast"
 
 ### Phase 1: Preparation (2-3 minutes)
 ```
-✓ Loading configuration
-✓ Resolving admin emails to Azure AD Object IDs
-✓ Testing region availability...
-✓ Selected region: eastus
-✓ Creating resource group
+ Loading configuration
+ Resolving admin emails to Azure AD Object IDs
+ Testing region availability...
+ Selected region: eastus
+ Creating resource group
 ```
 
 ### Phase 2: Infrastructure Deployment (15-30 minutes)
 ```
-✓ Deploying networking (VNet, subnets, NSGs)
-✓ Deploying monitoring (Log Analytics, App Insights)
-✓ Creating managed identity
-✓ Deploying Key Vault
-✓ Deploying OpenAI (with model deployments)
-✓ Deploying Cosmos DB (with SQL role assignments)
-✓ Deploying Data Lake (with private DNS links)
-✓ Deploying SQL Database (password stored in Key Vault)
-✓ Deploying AI Search
-✓ Deploying Container Apps
-✓ Deploying Container Registry
-✓ Deploying APIM (if enabled)
-✓ Deploying Front Door (if enabled)
-✓ Deploying Redis (if enabled)
-✓ Configuring Azure Policy (if enabled)
-✓ Configuring RBAC (admin permissions)
-✓ Creating private endpoints with VNet-linked DNS zones
+ Deploying networking (VNet, subnets, NSGs)
+ Deploying monitoring (Log Analytics, App Insights)
+ Creating managed identity
+ Deploying Key Vault
+ Deploying OpenAI (with model deployments)
+ Deploying Cosmos DB (with SQL role assignments)
+ Deploying Data Lake (with private DNS links)
+ Deploying SQL Database (password stored in Key Vault)
+ Deploying AI Search
+ Deploying Container Apps
+ Deploying Container Registry
+ Deploying APIM (if enabled)
+ Deploying Front Door (if enabled)
+ Deploying Redis (if enabled)
+ Configuring Azure Policy (if enabled)
+ Configuring RBAC (admin permissions)
+ Creating private endpoints with VNet-linked DNS zones
 ```
 
 ### Phase 3: Outputs
@@ -375,7 +375,7 @@ az containerapp create \
 ### All Regions Fail
 If you see:
 ```
-✗ None of the specified regions support all required services!
+ None of the specified regions support all required services!
 ```
 
 **Solutions:**
@@ -385,7 +385,7 @@ If you see:
 
 ### Admin Email Not Found
 ```
-✗ User not found in Azure AD: user@company.com
+ User not found in Azure AD: user@company.com
 ```
 
 **Solution**: Ensure the email is a valid Azure AD user principal name (UPN)
@@ -410,7 +410,7 @@ Delete everything:
 az group delete --name <YOUR_RG_NAME> --yes --no-wait
 ```
 
-⚠️ **Warning**: This is permanent and deletes all data!
+ **Warning**: This is permanent and deletes all data!
 
 ---
 
@@ -426,18 +426,18 @@ az group delete --name <YOUR_RG_NAME> --yes --no-wait
 
 After deployment, you should have:
 
-- ✅ All services deployed in selected region
-- ✅ Managed identity with permissions configured
-- ✅ Your admin account has full access (via Object ID)
-- ✅ Private networking with DNS zone VNet links (if enabled)
-- ✅ SQL password stored in Key Vault
-- ✅ Monitoring collecting logs
-- ✅ Service endpoints available
-- ✅ APIM/Front Door/Redis (if enabled)
-- ✅ Azure Policy enforcing tags (if enabled)
+-  All services deployed in selected region
+-  Managed identity with permissions configured
+-  Your admin account has full access (via Object ID)
+-  Private networking with DNS zone VNet links (if enabled)
+-  SQL password stored in Key Vault
+-  Monitoring collecting logs
+-  Service endpoints available
+-  APIM/Front Door/Redis (if enabled)
+-  Azure Policy enforcing tags (if enabled)
 
 ---
 
-**Ready to deploy?** Just run `.\deploy.ps1` (Windows) or `./deploy.sh` (Linux/Mac) and you're live in 30 minutes! 🚀
+**Ready to deploy?** Just run `.\deploy.ps1` (Windows) or `./deploy.sh` (Linux/Mac) and you're live in 30 minutes! 
 
 The automatic region fallback ensures you'll never fail due to regional service availability. Just specify your preferred regions and let the deployment handle the rest!

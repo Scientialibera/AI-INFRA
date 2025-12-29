@@ -32,13 +32,13 @@ This project deploys a complete Azure AI Landing Zone infrastructure using:
 
 | Feature | Description |
 |---------|-------------|
-| 🌍 **Region Fallback** | Automatically selects first available region from your list |
-| 🔐 **Zero-Trust Security** | Private endpoints, VNet isolation, RBAC |
-| 🤖 **AI-Ready** | OpenAI, AI Search, Cosmos DB pre-configured |
-| 📊 **Full Observability** | Log Analytics, App Insights, configurable retention |
-| 🏗️ **Modular Design** | Enable only the services you need |
-| 🏷️ **Governance** | Azure Policy for required tags enforcement |
-| 🔑 **Secrets Management** | Auto-generated passwords stored in Key Vault |
+|  **Region Fallback** | Automatically selects first available region from your list |
+|  **Zero-Trust Security** | Private endpoints, VNet isolation, RBAC |
+|  **AI-Ready** | OpenAI, AI Search, Cosmos DB pre-configured |
+|  **Full Observability** | Log Analytics, App Insights, configurable retention |
+|  **Modular Design** | Enable only the services you need |
+|  **Governance** | Azure Policy for required tags enforcement |
+|  **Secrets Management** | Auto-generated passwords stored in Key Vault |
 
 ---
 
@@ -71,36 +71,36 @@ This project deploys a complete Azure AI Landing Zone infrastructure using:
 
 ```
 infra-deployment/
-├── azure.yaml                 # Azure Developer CLI configuration
-├── config.toml                # Your deployment configuration
-├── config.example.toml        # Example configuration template
-├── deploy.ps1                 # PowerShell deployment script
-├── deploy.sh                  # Bash deployment script
-├── validate.ps1               # Pre-deployment validation
-├── QUICKSTART.md              # 5-minute deployment guide
-├── README.md                  # This file
-├── PERMISSIONS_MATRIX.md      # Detailed permission reference
-├── FUTURE_IMPROVEMENTS.md     # Roadmap for enhancements
-└── infra/
-    ├── main.bicep             # Main orchestration template
-    ├── main.parameters.json   # Default parameters
-    └── modules/
-        ├── aisearch.bicep     # Azure AI Search
-        ├── apim.bicep         # API Management (NEW)
-        ├── containerapps.bicep # Container Apps + Dapr
-        ├── containerregistry.bicep # ACR
-        ├── cosmosdb.bicep     # Cosmos DB with SQL roles
-        ├── datalake.bicep     # Data Lake Gen2
-        ├── frontdoor.bicep    # Azure Front Door (NEW)
-        ├── identities.bicep   # Managed Identity
-        ├── keyvault.bicep     # Key Vault
-        ├── monitoring.bicep   # Log Analytics + App Insights
-        ├── networking.bicep   # VNet, subnets, NSGs
-        ├── openai.bicep       # Azure OpenAI
-        ├── policy.bicep       # Azure Policy (NEW)
-        ├── rbac.bicep         # RBAC assignments
-        ├── redis.bicep        # Redis Cache (NEW)
-        └── sqldb.bicep        # Azure SQL Database
+ azure.yaml                 # Azure Developer CLI configuration
+ config.toml                # Your deployment configuration
+ config.example.toml        # Example configuration template
+ deploy.ps1                 # PowerShell deployment script
+ deploy.sh                  # Bash deployment script
+ validate.ps1               # Pre-deployment validation
+ QUICKSTART.md              # 5-minute deployment guide
+ README.md                  # This file
+ PERMISSIONS_MATRIX.md      # Detailed permission reference
+ FUTURE_IMPROVEMENTS.md     # Roadmap for enhancements
+ infra/
+     main.bicep             # Main orchestration template
+     main.parameters.json   # Default parameters
+     modules/
+         aisearch.bicep     # Azure AI Search
+         apim.bicep         # API Management (NEW)
+         containerapps.bicep # Container Apps + Dapr
+         containerregistry.bicep # ACR
+         cosmosdb.bicep     # Cosmos DB with SQL roles
+         datalake.bicep     # Data Lake Gen2
+         frontdoor.bicep    # Azure Front Door (NEW)
+         identities.bicep   # Managed Identity
+         keyvault.bicep     # Key Vault
+         monitoring.bicep   # Log Analytics + App Insights
+         networking.bicep   # VNet, subnets, NSGs
+         openai.bicep       # Azure OpenAI
+         policy.bicep       # Azure Policy (NEW)
+         rbac.bicep         # RBAC assignments
+         redis.bicep        # Redis Cache (NEW)
+         sqldb.bicep        # Azure SQL Database
 ```
 
 ---
@@ -615,4 +615,4 @@ Built with:
 
 ---
 
-**Ready to deploy?** Start with [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup! 🚀
+**Ready to deploy?** Start with [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup! 

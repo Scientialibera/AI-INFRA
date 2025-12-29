@@ -138,20 +138,20 @@ foreach ($email in $adminEmails) {
         $user = az ad user show --id $email --query id -o tsv 2>$null
         if ($user) {
             $adminObjectIds += $user
-            Write-Host "    ✓ Found: $user" -ForegroundColor Green
+            Write-Host "     Found: $user" -ForegroundColor Green
         } else {
-            Write-Host "    ✗ User not found in Azure AD: $email" -ForegroundColor Red
+            Write-Host "     User not found in Azure AD: $email" -ForegroundColor Red
             Write-Host "      Make sure the email is a valid Azure AD user principal name (UPN)" -ForegroundColor Yellow
             exit 1
         }
     } catch {
-        Write-Host "    ✗ Error looking up user: $email" -ForegroundColor Red
+        Write-Host "     Error looking up user: $email" -ForegroundColor Red
         Write-Host "      $_" -ForegroundColor Yellow
         exit 1
     }
 }
 
-Write-Host "`n✓ Resolved $($adminObjectIds.Count) admin user(s)" -ForegroundColor Green
+Write-Host "`n Resolved $($adminObjectIds.Count) admin user(s)" -ForegroundColor Green
 
 # Function to test if a region supports required services
 function Test-RegionAvailability {
@@ -164,7 +164,7 @@ function Test-RegionAvailability {
         Write-Host "    Checking OpenAI availability..." -ForegroundColor Gray
         $openaiLocations = az provider show --namespace Microsoft.CognitiveServices --query "resourceTypes[?resourceType=='accounts'].locations[]" -o json | ConvertFrom-Json
         if ($openaiLocations -notcontains $Region) {
-            Write-Host "    ✗ OpenAI not available in $Region" -ForegroundColor Yellow
+            Write-Host "     OpenAI not available in $Region" -ForegroundColor Yellow
             return $false
         }
     }
@@ -174,7 +174,7 @@ function Test-RegionAvailability {
         Write-Host "    Checking Cosmos DB availability..." -ForegroundColor Gray
         $cosmosLocations = az provider show --namespace Microsoft.DocumentDB --query "resourceTypes[?resourceType=='databaseAccounts'].locations[]" -o json | ConvertFrom-Json
         if ($cosmosLocations -notcontains $Region) {
-            Write-Host "    ✗ Cosmos DB not available in $Region" -ForegroundColor Yellow
+            Write-Host "     Cosmos DB not available in $Region" -ForegroundColor Yellow
             return $false
         }
     }
@@ -184,12 +184,12 @@ function Test-RegionAvailability {
         Write-Host "    Checking Container Apps availability..." -ForegroundColor Gray
         $containerAppsLocations = az provider show --namespace Microsoft.App --query "resourceTypes[?resourceType=='managedEnvironments'].locations[]" -o json | ConvertFrom-Json
         if ($containerAppsLocations -notcontains $Region) {
-            Write-Host "    ✗ Container Apps not available in $Region" -ForegroundColor Yellow
+            Write-Host "     Container Apps not available in $Region" -ForegroundColor Yellow
             return $false
         }
     }
 
-    Write-Host "    ✓ Region $Region supports all required services" -ForegroundColor Green
+    Write-Host "     Region $Region supports all required services" -ForegroundColor Green
     return $true
 }
 
@@ -199,13 +199,13 @@ $selectedLocation = $null
 foreach ($location in $locations) {
     if (Test-RegionAvailability -Region $location) {
         $selectedLocation = $location
-        Write-Host "`n✓ Selected region: $selectedLocation" -ForegroundColor Green
+        Write-Host "`n Selected region: $selectedLocation" -ForegroundColor Green
         break
     }
 }
 
 if (-not $selectedLocation) {
-    Write-Host "`n✗ None of the specified regions support all required services!" -ForegroundColor Red
+    Write-Host "`n None of the specified regions support all required services!" -ForegroundColor Red
     Write-Host "  Tried regions: $($locations -join ', ')" -ForegroundColor Yellow
     Write-Host "  Please update config.toml with different regions or disable some services." -ForegroundColor Yellow
     exit 1
@@ -352,7 +352,7 @@ if ($WhatIf) {
         --verbose
 
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "`n✓ Deployment completed successfully!" -ForegroundColor Green
+        Write-Host "`n Deployment completed successfully!" -ForegroundColor Green
 
         # Get outputs
         Write-Host "`nRetrieving deployment outputs..." -ForegroundColor Cyan
@@ -367,7 +367,7 @@ if ($WhatIf) {
             Write-Host "  $($_.Name): $($_.Value.value)"
         }
     } else {
-        Write-Host "`n✗ Deployment failed!" -ForegroundColor Red
+        Write-Host "`n Deployment failed!" -ForegroundColor Red
         exit 1
     }
 }

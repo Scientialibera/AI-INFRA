@@ -102,7 +102,7 @@ Each admin user (specified in `config.toml`) receives comprehensive access to al
 
 ### Application (Container Apps Managed Identity)
 
-✅ **Can**:
+ **Can**:
 - Call OpenAI models
 - Read/write Cosmos DB data
 - Read/write Data Lake files
@@ -112,7 +112,7 @@ Each admin user (specified in `config.toml`) receives comprehensive access to al
 - Pull container images
 - Access Redis cache (if enabled)
 
-❌ **Cannot**:
+ **Cannot**:
 - Deploy new OpenAI models
 - Create new databases
 - Modify firewall rules
@@ -121,7 +121,7 @@ Each admin user (specified in `config.toml`) receives comprehensive access to al
 
 ### Admin Users
 
-✅ **Can**:
+ **Can**:
 - Everything the application can do
 - Deploy and configure services
 - Create/delete databases
@@ -130,7 +130,7 @@ Each admin user (specified in `config.toml`) receives comprehensive access to al
 - Grant permissions to other users
 - Delete services
 
-❌ **Cannot**:
+ **Cannot**:
 - Delete the resource group (needs Owner role)
 - Modify subscription-level policies
 
@@ -142,8 +142,8 @@ The deployment automatically stores sensitive information in Key Vault:
 
 | Secret Name | Description | Auto-Generated |
 |-------------|-------------|----------------|
-| `sql-admin-password` | SQL Server admin password | ✅ Yes |
-| `sql-connection-string` | Full SQL connection string | ✅ Yes |
+| `sql-admin-password` | SQL Server admin password |  Yes |
+| `sql-connection-string` | Full SQL connection string |  Yes |
 
 ---
 
@@ -279,14 +279,14 @@ Key roles used in this deployment:
 
 ## Summary
 
-✅ **Managed Identity**: Data plane access only (application runtime)
-✅ **Admin Users**: Both service plane + data plane (full access)
-✅ **Object ID Resolution**: Admin emails automatically resolved to Azure AD Object IDs
-✅ **No Hard-Coded Credentials**: All access via Azure AD
-✅ **Secrets in Key Vault**: SQL password and connection string stored securely
-✅ **Auditable**: All access logged and traceable
-✅ **Granular**: Different roles for different services
-✅ **Secure**: Least-privilege by default
-✅ **VNet Linked DNS**: Private endpoints resolve correctly within VNet
+ **Managed Identity**: Data plane access only (application runtime)
+ **Admin Users**: Both service plane + data plane (full access)
+ **Object ID Resolution**: Admin emails automatically resolved to Azure AD Object IDs
+ **No Hard-Coded Credentials**: All access via Azure AD
+ **Secrets in Key Vault**: SQL password and connection string stored securely
+ **Auditable**: All access logged and traceable
+ **Granular**: Different roles for different services
+ **Secure**: Least-privilege by default
+ **VNet Linked DNS**: Private endpoints resolve correctly within VNet
 
 This permissions matrix ensures your AI infrastructure is secure, compliant, and follows Azure best practices.

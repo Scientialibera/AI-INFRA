@@ -78,9 +78,9 @@ for email in $(echo $ADMIN_EMAILS | jq -r '.[]'); do
     USER_ID=$(az ad user show --id "$email" --query id -o tsv 2>/dev/null)
     if [ -n "$USER_ID" ]; then
         ADMIN_OBJECT_IDS+=("\"$USER_ID\"")
-        echo -e "    ${GREEN}✓ Found: $USER_ID${NC}"
+        echo -e "    ${GREEN} Found: $USER_ID${NC}"
     else
-        echo -e "    ${RED}✗ User not found in Azure AD: $email${NC}"
+        echo -e "    ${RED} User not found in Azure AD: $email${NC}"
         echo -e "      ${YELLOW}Make sure the email is a valid Azure AD user principal name (UPN)${NC}"
         exit 1
     fi
@@ -88,7 +88,7 @@ done
 
 # Convert array to JSON format
 ADMIN_OBJECT_IDS_JSON="[$(IFS=,; echo "${ADMIN_OBJECT_IDS[*]}")]"
-echo -e "\n${GREEN}✓ Resolved ${#ADMIN_OBJECT_IDS[@]} admin user(s)${NC}"
+echo -e "\n${GREEN} Resolved ${#ADMIN_OBJECT_IDS[@]} admin user(s)${NC}"
 
 # Function to test if a region supports required services
 test_region_availability() {
@@ -104,7 +104,7 @@ test_region_availability() {
         echo -e "    ${NC}Checking OpenAI availability...${NC}"
         local openai_locations=$(az provider show --namespace Microsoft.CognitiveServices --query "resourceTypes[?resourceType=='accounts'].locations[]" -o json | jq -r '.[]')
         if ! echo "$openai_locations" | grep -qi "$region"; then
-            echo -e "    ${YELLOW}✗ OpenAI not available in $region${NC}"
+            echo -e "    ${YELLOW} OpenAI not available in $region${NC}"
             return 1
         fi
     fi
@@ -114,7 +114,7 @@ test_region_availability() {
         echo -e "    ${NC}Checking Cosmos DB availability...${NC}"
         local cosmos_locations=$(az provider show --namespace Microsoft.DocumentDB --query "resourceTypes[?resourceType=='databaseAccounts'].locations[]" -o json | jq -r '.[]')
         if ! echo "$cosmos_locations" | grep -qi "$region"; then
-            echo -e "    ${YELLOW}✗ Cosmos DB not available in $region${NC}"
+            echo -e "    ${YELLOW} Cosmos DB not available in $region${NC}"
             return 1
         fi
     fi
@@ -124,12 +124,12 @@ test_region_availability() {
         echo -e "    ${NC}Checking Container Apps availability...${NC}"
         local containerapps_locations=$(az provider show --namespace Microsoft.App --query "resourceTypes[?resourceType=='managedEnvironments'].locations[]" -o json | jq -r '.[]')
         if ! echo "$containerapps_locations" | grep -qi "$region"; then
-            echo -e "    ${YELLOW}✗ Container Apps not available in $region${NC}"
+            echo -e "    ${YELLOW} Container Apps not available in $region${NC}"
             return 1
         fi
     fi
 
-    echo -e "    ${GREEN}✓ Region $region supports all required services${NC}"
+    echo -e "    ${GREEN} Region $region supports all required services${NC}"
     return 0
 }
 
@@ -139,13 +139,13 @@ SELECTED_LOCATION=""
 for location in "${LOCATION_ARRAY[@]}"; do
     if test_region_availability "$location"; then
         SELECTED_LOCATION="$location"
-        echo -e "\n${GREEN}✓ Selected region: $SELECTED_LOCATION${NC}"
+        echo -e "\n${GREEN} Selected region: $SELECTED_LOCATION${NC}"
         break
     fi
 done
 
 if [ -z "$SELECTED_LOCATION" ]; then
-    echo -e "\n${RED}✗ None of the specified regions support all required services!${NC}"
+    echo -e "\n${RED} None of the specified regions support all required services!${NC}"
     echo -e "  ${YELLOW}Tried regions: ${LOCATION_ARRAY[@]}${NC}"
     echo -e "  ${YELLOW}Please update config.toml with different regions or disable some services.${NC}"
     exit 1
@@ -232,7 +232,7 @@ else
         --verbose
 
     if [ $? -eq 0 ]; then
-        echo -e "\n${GREEN}✓ Deployment completed successfully!${NC}"
+        echo -e "\n${GREEN} Deployment completed successfully!${NC}"
 
         # Get outputs
         echo -e "\n${CYAN}Retrieving deployment outputs...${NC}"
@@ -245,7 +245,7 @@ else
         echo -e "\n${YELLOW}Deployment Outputs:${NC}"
         echo $OUTPUTS | jq -r 'to_entries[] | "  \(.key): \(.value.value)"'
     else
-        echo -e "\n${RED}✗ Deployment failed!${NC}"
+        echo -e "\n${RED} Deployment failed!${NC}"
         exit 1
     fi
 fi

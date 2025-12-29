@@ -7,11 +7,15 @@ param enableGremlin bool
 param consistencyLevel string
 param enableVNet bool
 param privateEndpointSubnetId string
+param vnetId string = ''
 param containerAppsMIObjectId string
+param enableServerless bool = false
+param enableAnalyticalStorage bool = false
+param additionalLocations array = []
 param tags object = {}
 
 // Cosmos DB Account
-resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
+resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
   name: cosmosDBName
   location: location
   tags: tags
@@ -21,20 +25,24 @@ resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
     consistencyPolicy: {
       defaultConsistencyLevel: consistencyLevel
     }
-    locations: [
+    locations: concat([
       {
         locationName: location
         failoverPriority: 0
         isZoneRedundant: false
       }
-    ]
-    capabilities: enableGremlin ? [
-      {
-        name: 'EnableGremlin'
-      }
-    ] : []
+    ], [for (loc, i) in additionalLocations: {
+      locationName: loc
+      failoverPriority: i + 1
+      isZoneRedundant: false
+    }])
+    capabilities: concat(
+      enableGremlin ? [{ name: 'EnableGremlin' }] : [],
+      enableServerless ? [{ name: 'EnableServerless' }] : []
+    )
     enableAutomaticFailover: true
     enableMultipleWriteLocations: false
+    enableAnalyticalStorage: enableAnalyticalStorage
     publicNetworkAccess: enableVNet ? 'Disabled' : 'Enabled'
     networkAclBypass: 'AzureServices'
   }
@@ -145,6 +153,19 @@ resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (ena
   tags: tags
 }
 
+// VNet Link for Private DNS Zone
+resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (enableVNet) {
+  parent: privateDnsZone
+  name: '${cosmosDBName}-vnet-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnetId
+    }
+  }
+}
+
 // Private DNS Zone Group
 resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-05-01' = if (enableVNet) {
   parent: privateEndpoint
@@ -161,14 +182,17 @@ resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneG
   }
 }
 
-// RBAC: Grant Container Apps MI access to Cosmos DB
-resource cosmosDBDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(cosmosDB.id, containerAppsMIObjectId, 'Cosmos DB Built-in Data Contributor')
-  scope: cosmosDB
+// RBAC: Grant Container Apps MI access to Cosmos DB using SQL Role Assignment (data plane)
+// Built-in Cosmos DB Data Contributor role
+var cosmosDataContributorRoleId = '00000000-0000-0000-0000-000000000002'
+
+resource cosmosDBSqlRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-05-15' = {
+  parent: cosmosDB
+  name: guid(cosmosDB.id, containerAppsMIObjectId, cosmosDataContributorRoleId)
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00000000-0000-0000-0000-000000000002') // Cosmos DB Built-in Data Contributor
+    roleDefinitionId: '${cosmosDB.id}/sqlRoleDefinitions/${cosmosDataContributorRoleId}'
     principalId: containerAppsMIObjectId
-    principalType: 'ServicePrincipal'
+    scope: cosmosDB.id
   }
 }
 

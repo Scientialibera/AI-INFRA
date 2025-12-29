@@ -3,6 +3,7 @@
 param location string
 param logAnalyticsName string
 param appInsightsName string
+param retentionInDays int = 30
 param tags object = {}
 
 // Log Analytics Workspace
@@ -14,7 +15,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
     sku: {
       name: 'PerGB2018'
     }
-    retentionInDays: 30
+    retentionInDays: retentionInDays
     features: {
       enableLogAccessUsingOnlyResourcePermissions: true
     }

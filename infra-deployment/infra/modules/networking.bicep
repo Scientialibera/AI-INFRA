@@ -47,14 +47,8 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
           networkSecurityGroup: {
             id: sqlNSG.id
           }
-          delegations: [
-            {
-              name: 'sql-delegation'
-              properties: {
-                serviceName: 'Microsoft.Sql/managedInstances'
-              }
-            }
-          ]
+          // Note: No delegation needed for Azure SQL Database
+          // Delegation is only required for SQL Managed Instance
         }
       }
     ]

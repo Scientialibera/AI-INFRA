@@ -5,6 +5,7 @@ param dataLakeName string
 param sku string
 param enableVNet bool
 param privateEndpointSubnetId string
+param vnetId string = ''
 param containerAppsMIObjectId string
 param tags object = {}
 
@@ -124,11 +125,37 @@ resource privateDnsZoneBlob 'Microsoft.Network/privateDnsZones@2020-06-01' = if 
   tags: tags
 }
 
+// VNet Link for Blob Private DNS Zone
+resource privateDnsZoneVnetLinkBlob 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (enableVNet) {
+  parent: privateDnsZoneBlob
+  name: '${dataLakeName}-blob-vnet-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnetId
+    }
+  }
+}
+
 // Private DNS Zone for DFS
 resource privateDnsZoneDfs 'Microsoft.Network/privateDnsZones@2020-06-01' = if (enableVNet) {
   name: 'privatelink.dfs.core.windows.net'
   location: 'global'
   tags: tags
+}
+
+// VNet Link for DFS Private DNS Zone
+resource privateDnsZoneVnetLinkDfs 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (enableVNet) {
+  parent: privateDnsZoneDfs
+  name: '${dataLakeName}-dfs-vnet-link'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnetId
+    }
+  }
 }
 
 // Private DNS Zone Group for Blob

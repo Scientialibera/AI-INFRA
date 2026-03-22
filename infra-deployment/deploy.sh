@@ -180,7 +180,7 @@ PARAMS_JSON=$(cat <<EOF
   "projectName": {"value": "$PROJECT_NAME"},
   "location": {"value": "$SELECTED_LOCATION"},
   "environment": {"value": "$ENVIRONMENT"},
-  "adminEmails": {"value": $ADMIN_OBJECT_IDS_JSON},
+  "adminObjectIds": {"value": $ADMIN_OBJECT_IDS_JSON},
   "enableVNet": {"value": $(echo $CONFIG_JSON | jq '.networking.enabled')},
   "vnetAddressPrefix": {"value": "$(echo $CONFIG_JSON | jq -r '.networking.vnetAddressPrefix')"},
   "containerAppsSubnetPrefix": {"value": "$(echo $CONFIG_JSON | jq -r '.networking.containerAppsSubnetPrefix')"},
@@ -218,8 +218,11 @@ echo -e "\n${CYAN}Deploying infrastructure...${NC}"
 echo -e "${YELLOW}This may take 15-30 minutes depending on the services enabled...${NC}"
 
 if [ "$WHAT_IF" = "--what-if" ]; then
-    echo -e "\n${YELLOW}[WHAT-IF MODE] Would deploy with these parameters:${NC}"
-    cat $TEMP_PARAMS_FILE | jq '.'
+    echo -e "\n${YELLOW}[WHAT-IF MODE] Previewing deployment changes...${NC}"
+    az deployment group what-if \
+        --resource-group $RESOURCE_GROUP \
+        --template-file infra/main.bicep \
+        --parameters "@$TEMP_PARAMS_FILE"
 else
     # Deploy using Azure CLI
     DEPLOYMENT_NAME="ai-landing-zone-$(date +%Y%m%d-%H%M%S)"
@@ -229,6 +232,7 @@ else
         --resource-group $RESOURCE_GROUP \
         --template-file infra/main.bicep \
         --parameters "@$TEMP_PARAMS_FILE" \
+        --mode Incremental \
         --verbose
 
     if [ $? -eq 0 ]; then

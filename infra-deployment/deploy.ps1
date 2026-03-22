@@ -338,8 +338,11 @@ Write-Host "`nDeploying infrastructure..." -ForegroundColor Cyan
 Write-Host "This may take 15-30 minutes depending on the services enabled..." -ForegroundColor Yellow
 
 if ($WhatIf) {
-    Write-Host "`n[WHAT-IF MODE] Would deploy with these parameters:" -ForegroundColor Magenta
-    $parameters | ConvertTo-Json -Depth 10
+    Write-Host "`n[WHAT-IF MODE] Previewing deployment changes..." -ForegroundColor Magenta
+    az deployment group what-if `
+        --resource-group $resourceGroupName `
+        --template-file "infra/main.bicep" `
+        --parameters "@$tempParamsFile"
 } else {
     # Deploy using Azure CLI
     $deploymentName = "ai-landing-zone-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
@@ -349,6 +352,7 @@ if ($WhatIf) {
         --resource-group $resourceGroupName `
         --template-file "infra/main.bicep" `
         --parameters "@$tempParamsFile" `
+        --mode Incremental `
         --verbose
 
     if ($LASTEXITCODE -eq 0) {

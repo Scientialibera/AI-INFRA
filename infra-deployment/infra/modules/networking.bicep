@@ -6,6 +6,7 @@ param vnetAddressPrefix string
 param containerAppsSubnetPrefix string
 param privateEndpointSubnetPrefix string
 param sqlSubnetPrefix string
+param apimSubnetPrefix string = '10.0.4.0/27'
 param tags object = {}
 
 // Virtual Network
@@ -49,6 +50,15 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
           }
           // Note: No delegation needed for Azure SQL Database
           // Delegation is only required for SQL Managed Instance
+        }
+      }
+      {
+        name: 'snet-apim'
+        properties: {
+          addressPrefix: apimSubnetPrefix
+          networkSecurityGroup: {
+            id: apimNSG.id
+          }
         }
       }
     ]
@@ -126,8 +136,19 @@ resource sqlNSG 'Microsoft.Network/networkSecurityGroups@2023-05-01' = {
   }
 }
 
+// Network Security Group for APIM
+resource apimNSG 'Microsoft.Network/networkSecurityGroups@2023-05-01' = {
+  name: '${vnetName}-apim-nsg'
+  location: location
+  tags: tags
+  properties: {
+    securityRules: []
+  }
+}
+
 output vnetId string = vnet.id
 output vnetName string = vnet.name
 output containerAppsSubnetId string = vnet.properties.subnets[0].id
 output privateEndpointSubnetId string = vnet.properties.subnets[1].id
 output sqlSubnetId string = vnet.properties.subnets[2].id
+output apimSubnetId string = vnet.properties.subnets[3].id

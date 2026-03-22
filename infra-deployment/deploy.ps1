@@ -19,7 +19,7 @@ if (-not $account) {
     az login
 }
 
-# Function to parse TOML (simplified - handles basic TOML)
+# Function to parse TOML using Python's real TOML parser
 function Get-TomlConfig {
     param([string]$Path)
 
@@ -28,79 +28,21 @@ function Get-TomlConfig {
         exit 1
     }
 
-    $config = @{}
-    $currentSection = $null
-
-    Get-Content $Path | ForEach-Object {
-        $line = $_.Trim()
-
-        # Skip comments and empty lines
-        if ($line -match '^#' -or $line -eq '') {
-            return
-        }
-
-        # Section headers [section] or [section.subsection]
-        if ($line -match '^\[(.+)\]$') {
-            $currentSection = $matches[1]
-            $sections = $currentSection -split '\.'
-
-            # Create nested hashtables
-            $current = $config
-            for ($i = 0; $i -lt $sections.Length; $i++) {
-                if (-not $current.ContainsKey($sections[$i])) {
-                    $current[$sections[$i]] = @{}
-                }
-                if ($i -lt $sections.Length - 1) {
-                    $current = $current[$sections[$i]]
-                }
-            }
-            return
-        }
-
-        # Key-value pairs
-        if ($line -match '^(\w+)\s*=\s*(.+)$') {
-            $key = $matches[1]
-            $value = $matches[2].Trim()
-
-            # Parse value type
-            if ($value -match '^\[(.+)\]$') {
-                # Array
-                $arrayContent = $matches[1]
-                if ($arrayContent -match '^\s*\{') {
-                    # Array of objects - parse as JSON
-                    $value = $arrayContent | ConvertFrom-Json
-                } else {
-                    # Array of strings
-                    $value = $arrayContent -split ',' | ForEach-Object {
-                        $_.Trim().Trim('"').Trim("'")
-                    }
-                }
-            } elseif ($value -eq 'true') {
-                $value = $true
-            } elseif ($value -eq 'false') {
-                $value = $false
-            } elseif ($value -match '^\d+$') {
-                $value = [int]$value
-            } else {
-                # String - remove quotes
-                $value = $value.Trim('"').Trim("'")
-            }
-
-            # Add to config
-            if ($currentSection) {
-                $sections = $currentSection -split '\.'
-                $current = $config
-                foreach ($section in $sections) {
-                    $current = $current[$section]
-                }
-                $current[$key] = $value
-            } else {
-                $config[$key] = $value
-            }
-        }
+    if (-not (Get-Command python3 -ErrorAction SilentlyContinue) -and -not (Get-Command python -ErrorAction SilentlyContinue)) {
+        Write-Error "Python is required to parse TOML reliably. Install Python 3.11+."
+        exit 1
     }
 
-    return $config
+    $pythonCmd = if (Get-Command python3 -ErrorAction SilentlyContinue) { "python3" } else { "python" }
+    $tomlJson = & $pythonCmd -c @"
+import json
+import pathlib
+import tomllib
+path = pathlib.Path(r'''$Path''')
+with path.open('rb') as f:
+    print(json.dumps(tomllib.load(f)))
+"@
+    return $tomlJson | ConvertFrom-Json -AsHashtable
 }
 
 Write-Host "Loading configuration from $ConfigFile..." -ForegroundColor Cyan
@@ -248,6 +190,7 @@ $parameters = @{
     containerAppsSubnetPrefix = $config.networking.containerAppsSubnetPrefix
     privateEndpointSubnetPrefix = $config.networking.privateEndpointSubnetPrefix
     sqlSubnetPrefix = $config.networking.sqlSubnetPrefix
+    apimSubnetPrefix = if ($config.networking.apimSubnetPrefix) { $config.networking.apimSubnetPrefix } else { "10.0.4.0/27" }
     
     # Service enablement flags
     enableOpenAI = $config.services.openai.enabled
@@ -279,7 +222,7 @@ $parameters = @{
     # SQL parameters
     sqlDatabaseSku = $config.services.sqldb.databaseSku
     sqlAdminUsername = $config.services.sqldb.adminUsername
-    sqlAllowedIpRanges = if ($config.services.sqldb.allowedIpRanges) { $config.services.sqldb.allowedIpRanges } else { @() }
+    sqlAllowedIpRules = if ($config.services.sqldb.allowedIpRules) { $config.services.sqldb.allowedIpRules } else { @() }
     sqlZoneRedundant = if ($config.services.sqldb.zoneRedundant) { $config.services.sqldb.zoneRedundant } else { $false }
     
     # AI Search parameters

@@ -14,6 +14,12 @@ param enableAnalyticalStorage bool = false
 param additionalLocations array = []
 param tags object = {}
 
+var failoverLocations = [for (loc, i) in additionalLocations: {
+  locationName: loc
+  failoverPriority: i + 1
+  isZoneRedundant: false
+}]
+
 // Cosmos DB Account
 resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
   name: cosmosDBName
@@ -31,11 +37,7 @@ resource cosmosDB 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
         failoverPriority: 0
         isZoneRedundant: false
       }
-    ], [for (loc, i) in additionalLocations: {
-      locationName: loc
-      failoverPriority: i + 1
-      isZoneRedundant: false
-    }])
+    ], failoverLocations)
     capabilities: concat(
       enableGremlin ? [{ name: 'EnableGremlin' }] : [],
       enableServerless ? [{ name: 'EnableServerless' }] : []

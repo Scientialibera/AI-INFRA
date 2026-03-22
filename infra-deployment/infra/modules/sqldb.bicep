@@ -10,7 +10,7 @@ param privateEndpointSubnetId string
 param vnetId string = ''
 param containerAppsMIObjectId string
 param containerAppsMIPrincipalId string
-param allowedIpRanges array = []
+param allowedIpRules array = []
 param keyVaultName string = ''
 param zoneRedundant bool = false
 param tags object = {}
@@ -84,15 +84,12 @@ resource firewallRuleAzure 'Microsoft.Sql/servers/firewallRules@2023-05-01-previ
 }
 
 // Firewall rules for whitelisted IP ranges
-resource firewallRulesIP 'Microsoft.Sql/servers/firewallRules@2023-05-01-preview' = [for (ipRange, index) in allowedIpRanges: {
+resource firewallRulesIP 'Microsoft.Sql/servers/firewallRules@2023-05-01-preview' = [for (ipRule, index) in allowedIpRules: {
   parent: sqlServer
   name: 'AllowIP-${index}'
   properties: {
-    // Parse CIDR notation (e.g., "203.0.113.0/24" or "198.51.100.42/32")
-    startIpAddress: split(ipRange, '/')[0]
-    // For simplicity, if /32, use same IP for start and end
-    // For broader ranges, Azure will handle the CIDR properly
-    endIpAddress: contains(ipRange, '/32') ? split(ipRange, '/')[0] : split(ipRange, '/')[0]
+    startIpAddress: ipRule.startIpAddress
+    endIpAddress: ipRule.endIpAddress
   }
 }]
 

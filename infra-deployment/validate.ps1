@@ -2,7 +2,9 @@
 # This script validates the Bicep templates and configuration
 
 param(
-    [string]$ConfigFile = "config.toml"
+    [string]$ConfigFile = "config.toml",
+    [string]$ResourceGroupName = "",
+    [switch]$SkipDeploymentChecks
 )
 
 Write-Host "Azure AI Landing Zone - Validation Script" -ForegroundColor Cyan
@@ -68,7 +70,12 @@ $bicepFiles = @(
     "infra/modules/aisearch.bicep",
     "infra/modules/containerregistry.bicep",
     "infra/modules/containerapps.bicep",
-    "infra/modules/rbac.bicep"
+    "infra/modules/rbac.bicep",
+    "infra/modules/apim.bicep",
+    "infra/modules/frontdoor.bicep",
+    "infra/modules/redis.bicep",
+    "infra/modules/policy.bicep",
+    "infra/modules/policy-assignment-rg.bicep"
 )
 
 $allValid = $true
@@ -95,23 +102,52 @@ foreach ($bicepFile in $bicepFiles) {
     }
 }
 
-# Validate main template with what-if
-Write-Host "`nRunning deployment what-if analysis..." -ForegroundColor Yellow
-Write-Host "(This shows what would be created/modified/deleted)`n" -ForegroundColor Cyan
-
-# For what-if, we need to parse config and create a minimal parameter set
-# For now, just validate the template compiles
-try {
-    az bicep build --file infra/main.bicep --stdout > $null 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host " Main template builds successfully" -ForegroundColor Green
+if (-not $SkipDeploymentChecks) {
+    if ([string]::IsNullOrWhiteSpace($ResourceGroupName)) {
+        Write-Host "`nSkipping deployment validate/what-if checks (no -ResourceGroupName provided)." -ForegroundColor Yellow
+    } elseif (-not (Test-Path "infra/main.bicepparam")) {
+        Write-Host "`nSkipping deployment validate/what-if checks (missing infra/main.bicepparam)." -ForegroundColor Yellow
     } else {
-        Write-Host " Main template has errors" -ForegroundColor Red
-        $allValid = $false
+        Write-Host "`nRunning deployment validate..." -ForegroundColor Yellow
+        try {
+            az deployment group validate `
+                --resource-group $ResourceGroupName `
+                --template-file "infra/main.bicep" `
+                --parameters "infra/main.bicepparam" `
+                --only-show-errors `
+                --output none
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host " Deployment validate passed" -ForegroundColor Green
+            } else {
+                Write-Host " Deployment validate failed" -ForegroundColor Red
+                $allValid = $false
+            }
+        } catch {
+            Write-Host " Deployment validate failed with exception" -ForegroundColor Red
+            Write-Host "  $_" -ForegroundColor Yellow
+            $allValid = $false
+        }
+
+        Write-Host "`nRunning deployment what-if..." -ForegroundColor Yellow
+        try {
+            az deployment group what-if `
+                --resource-group $ResourceGroupName `
+                --template-file "infra/main.bicep" `
+                --parameters "infra/main.bicepparam" `
+                --result-format ResourceIdOnly `
+                --output none
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host " Deployment what-if passed" -ForegroundColor Green
+            } else {
+                Write-Host " Deployment what-if failed" -ForegroundColor Red
+                $allValid = $false
+            }
+        } catch {
+            Write-Host " Deployment what-if failed with exception" -ForegroundColor Red
+            Write-Host "  $_" -ForegroundColor Yellow
+            $allValid = $false
+        }
     }
-} catch {
-    Write-Host " Failed to build main template" -ForegroundColor Red
-    $allValid = $false
 }
 
 # Summary

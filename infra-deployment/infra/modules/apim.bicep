@@ -7,8 +7,7 @@ param publisherName string
 param sku string = 'Developer'
 param skuCount int = 1
 param enableVNet bool
-param privateEndpointSubnetId string = ''
-param vnetId string = ''
+param apimSubnetId string = ''
 param openAIEndpoint string = ''
 param aiSearchEndpoint string = ''
 param containerAppsMIObjectId string = ''
@@ -31,7 +30,7 @@ resource apim 'Microsoft.ApiManagement/service@2023-09-01-preview' = {
     publisherName: publisherName
     virtualNetworkType: enableVNet ? 'External' : 'None'
     virtualNetworkConfiguration: enableVNet ? {
-      subnetResourceId: privateEndpointSubnetId
+      subnetResourceId: apimSubnetId
     } : null
   }
 }

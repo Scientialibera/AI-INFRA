@@ -8,12 +8,18 @@ targetScope = 'resourceGroup'
 // =============================================================================
 
 @description('Project name prefix for resource naming')
+@minLength(2)
 param projectName string
 
 @description('Azure region for all resources')
 param location string = resourceGroup().location
 
 @description('Environment (dev, staging, prod)')
+@allowed([
+  'dev'
+  'staging'
+  'prod'
+])
 param environment string
 
 @description('Admin user Object IDs for RBAC assignments (resolved from emails by deploy script)')
@@ -126,8 +132,8 @@ param sqlDatabaseSku string = 'S1'
 @description('SQL Admin Username')
 param sqlAdminUsername string = 'sqladmin'
 
-@description('SQL allowed IP ranges (CIDR notation)')
-param sqlAllowedIpRanges array = []
+@description('SQL allowed firewall rules with explicit start/end IPv4 addresses')
+param sqlAllowedIpRules array = []
 
 @description('SQL Database zone redundancy')
 param sqlZoneRedundant bool = false
@@ -178,6 +184,11 @@ param containerRegistryGeoReplicationLocations array = []
 @description('Data Lake Storage SKU')
 param dataLakeSku string = 'Standard_LRS'
 
+@description('Data Lake storage account name (lowercase alphanumeric, 3-24 characters)')
+@minLength(3)
+@maxLength(24)
+param dataLakeName string = toLower(replace('${projectName}${environment}datalake', '-', ''))
+
 // =============================================================================
 // KEY VAULT PARAMETERS
 // =============================================================================
@@ -187,6 +198,11 @@ param keyVaultSku string = 'standard'
 
 @description('Key Vault soft delete retention days')
 param keyVaultSoftDeleteRetentionDays int = 90
+
+@description('Key Vault name (3-24 characters)')
+@minLength(3)
+@maxLength(24)
+param keyVaultName string = toLower('${projectName}-${environment}-kv')
 
 // =============================================================================
 // MONITORING PARAMETERS
@@ -207,6 +223,9 @@ param apimPublisherName string = ''
 
 @description('APIM SKU (Developer, Basic, Standard, Premium)')
 param apimSku string = 'Developer'
+
+@description('APIM dedicated subnet prefix (minimum /27 for VNet integration)')
+param apimSubnetPrefix string = '10.0.4.0/27'
 
 // =============================================================================
 // FRONT DOOR PARAMETERS
@@ -242,13 +261,11 @@ param policyEnforcementMode string = 'Default'
 var namingPrefix = '${projectName}-${environment}'
 var openAIName = '${namingPrefix}-openai'
 var cosmosDBName = '${namingPrefix}-cosmos'
-var dataLakeName = replace('${namingPrefix}datalake', '-', '')
 var sqlServerName = '${namingPrefix}-sql'
 var sqlDatabaseName = '${namingPrefix}-sqldb'
 var aiSearchName = '${namingPrefix}-search'
 var containerAppsEnvName = '${namingPrefix}-containerapps-env'
 var containerRegistryName = replace('${namingPrefix}acr', '-', '')
-var keyVaultName = '${namingPrefix}-kv'
 var logAnalyticsName = '${namingPrefix}-logs'
 var appInsightsName = '${namingPrefix}-appinsights'
 var vnetName = '${namingPrefix}-vnet'
@@ -270,6 +287,7 @@ module networking './modules/networking.bicep' = if (enableVNet) {
     containerAppsSubnetPrefix: containerAppsSubnetPrefix
     privateEndpointSubnetPrefix: privateEndpointSubnetPrefix
     sqlSubnetPrefix: sqlSubnetPrefix
+    apimSubnetPrefix: apimSubnetPrefix
     tags: tags
   }
 }
@@ -362,9 +380,6 @@ module dataLake './modules/datalake.bicep' = if (enableDataLake) {
     tags: tags
   }
 }
-    tags: tags
-  }
-}
 
 // Deploy SQL Database
 module sqlDB './modules/sqldb.bicep' = if (enableSQLDB) {
@@ -380,7 +395,7 @@ module sqlDB './modules/sqldb.bicep' = if (enableSQLDB) {
     vnetId: enableVNet ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
     containerAppsMIPrincipalId: identities.outputs.containerAppsMIPrincipalId
-    allowedIpRanges: sqlAllowedIpRanges
+    allowedIpRules: sqlAllowedIpRules
     keyVaultName: enableKeyVault ? keyVaultName : ''
     zoneRedundant: sqlZoneRedundant
     tags: tags
@@ -474,8 +489,7 @@ module apim './modules/apim.bicep' = if (enableAPIM) {
     publisherName: apimPublisherName
     sku: apimSku
     enableVNet: enableVNet
-    privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
-    vnetId: enableVNet ? networking.outputs.vnetId : ''
+    apimSubnetId: enableVNet ? networking.outputs.apimSubnetId : ''
     openAIEndpoint: enableOpenAI ? openAI.outputs.endpoint : ''
     aiSearchEndpoint: enableAISearch ? aiSearch.outputs.endpoint : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
@@ -512,12 +526,22 @@ module redis './modules/redis.bicep' = if (enableRedis) {
   }
 }
 
-// Deploy Azure Policy
-module policy './modules/policy.bicep' = if (enablePolicy) {
-  name: 'policy-deployment'
+// Deploy Azure Policy Set Definition (subscription scope)
+module policySet './modules/policy.bicep' = if (enablePolicy) {
+  name: 'policyset-deployment'
+  scope: subscription()
+  params: {
+    requiredTags: requiredTags
+  }
+}
+
+// Deploy Azure Policy Assignments (resource group scope)
+module policyAssignments './modules/policy-assignment-rg.bicep' = if (enablePolicy) {
+  name: 'policyassignments-deployment'
   params: {
     requiredTags: requiredTags
     enforcementMode: policyEnforcementMode
+    policySetDefinitionId: policySet.outputs.policySetDefinitionId
   }
 }
 

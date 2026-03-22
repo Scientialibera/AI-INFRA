@@ -25,7 +25,7 @@ This project deploys a complete Azure AI Landing Zone infrastructure using:
 - **Azure Bicep** for Infrastructure as Code
 - **Azure Developer CLI (azd)** for streamlined deployment (optional)
 - **PowerShell/Bash scripts** for automated configuration
-- **TOML configuration** for simple, readable settings
+- **TOML configuration** for readable settings, converted to deployment parameters by scripts
 - **Automatic region fallback** for resilient deployment
 
 ### Key Features
@@ -83,7 +83,7 @@ infra-deployment/
  FUTURE_IMPROVEMENTS.md     # Roadmap for enhancements
  infra/
      main.bicep             # Main orchestration template
-     main.parameters.json   # Default parameters
+     main.bicepparam        # Baseline Bicep parameter file for validate/what-if
      modules/
          aisearch.bicep     # Azure AI Search
          apim.bicep         # API Management (NEW)
@@ -162,6 +162,7 @@ vnetAddressPrefix = "10.0.0.0/16"
 containerAppsSubnetPrefix = "10.0.0.0/23"
 privateEndpointSubnetPrefix = "10.0.2.0/24"
 sqlSubnetPrefix = "10.0.3.0/24"
+apimSubnetPrefix = "10.0.4.0/27"
 ```
 
 ### Services Configuration
@@ -211,6 +212,9 @@ additionalRegions = []          # e.g., ["westus2", "westeurope"]
 enabled = true
 databaseSku = "S1"             # SKU tier
 zoneRedundant = false          # Zone redundancy (production)
+allowedIpRules = [
+  { startIpAddress = "203.0.113.10", endIpAddress = "203.0.113.20" }
+]
 ```
 
 The SQL admin password is automatically:
@@ -428,11 +432,13 @@ All zones are automatically linked to the VNet for proper name resolution.
 
 This runs Azure CLI what-if preview to validate and show planned resource changes without creating resources.
 
-#### Method 4: Azure Developer CLI
+#### Method 4: Azure Developer CLI (infra-first)
 
 ```bash
-azd up
+azd provision
 ```
+
+Use `azd up` only when you add application services to `azure.yaml` and want the full provision + package + deploy workflow.
 
 ### What Happens During Deployment
 

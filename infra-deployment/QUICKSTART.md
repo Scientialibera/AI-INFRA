@@ -162,6 +162,9 @@ additionalRegions = []          # e.g., ["westus2", "westeurope"]
 enabled = true
 databaseSku = "S1"
 zoneRedundant = false  # Set true for production
+allowedIpRules = [
+    { startIpAddress = "203.0.113.10", endIpAddress = "203.0.113.20" }
+]
 
 # AI Search with semantic/vector
 [services.aisearch]

@@ -43,6 +43,8 @@ containerAppsSubnetPrefix = "10.0.0.0/23"
 privateEndpointSubnetPrefix = "10.0.2.0/24"
 # Subnet for SQL integration
 sqlSubnetPrefix = "10.0.3.0/24"
+# Dedicated subnet for API Management VNet integration (minimum /27)
+apimSubnetPrefix = "10.0.4.0/27"
 
 # =============================================================================
 # AZURE OPENAI SERVICE
@@ -101,8 +103,8 @@ databaseSku = "S1"
 enableAzureADAuth = true
 # Enable zone redundancy (Premium tier only)
 zoneRedundant = false
-# Whitelist specific IP addresses (CIDR notation)
-allowedIpRanges = []
+# Whitelist specific IP ranges with explicit IPv4 start/end addresses
+allowedIpRules = []
 
 # =============================================================================
 # AI SEARCH

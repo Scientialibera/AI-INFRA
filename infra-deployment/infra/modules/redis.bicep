@@ -107,4 +107,3 @@ output redisId string = redis.id
 output redisName string = redis.name
 output hostName string = redis.properties.hostName
 output sslPort int = redis.properties.sslPort
-output primaryKey string = redis.listKeys().primaryKey

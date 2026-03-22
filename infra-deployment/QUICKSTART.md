@@ -63,6 +63,18 @@ chmod +x deploy.sh
 ./deploy.sh
 ```
 
+### Optional: Preview Before Deployment (Recommended)
+
+```powershell
+.\deploy.ps1 -WhatIf
+```
+
+```bash
+./deploy.sh config.toml --what-if
+```
+
+This uses Azure CLI what-if preview to validate and show planned resource changes without creating resources.
+
 **Watch the magic happen:**
 ```
 Loading configuration from config.toml...

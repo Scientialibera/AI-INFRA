@@ -141,9 +141,9 @@ emails = ["admin@company.com"] # Admin user emails (resolved to Object IDs)
 ### Governance (NEW)
 
 ```toml
-[governance]
+[policy]
 requiredTags = ["reason", "purpose"]  # Tags enforced by Azure Policy
-policyEnforcementMode = "Default"     # "Default" = Deny, "DoNotEnforce" = Audit
+enforcementMode = "Default"            # "Default" = Deny, "DoNotEnforce" = Audit
 
 [tags]
 Environment = "Development"
@@ -156,18 +156,12 @@ purpose = "Enterprise AI"       # Required tag
 ### Network Configuration
 
 ```toml
-[network]
-enabled = true                 # Enable VNet isolation
-addressPrefixes = ["10.0.0.0/16"]
-subnets = [
-    { name = "default", prefix = "10.0.0.0/24" },
-    { name = "services", prefix = "10.0.1.0/24" },
-    { name = "data", prefix = "10.0.2.0/24" },
-    { name = "containerApps", prefix = "10.0.3.0/24" },
-    { name = "integration", prefix = "10.0.4.0/24" },
-    { name = "apim", prefix = "10.0.5.0/24" },           # For APIM
-    { name = "privateEndpoints", prefix = "10.0.6.0/24" }
-]
+[networking]
+enabled = true
+vnetAddressPrefix = "10.0.0.0/16"
+containerAppsSubnetPrefix = "10.0.0.0/23"
+privateEndpointSubnetPrefix = "10.0.2.0/24"
+sqlSubnetPrefix = "10.0.3.0/24"
 ```
 
 ### Services Configuration
@@ -422,7 +416,19 @@ All zones are automatically linked to the VNet for proper name resolution.
 ./deploy.sh
 ```
 
-#### Method 3: Azure Developer CLI
+#### Method 3: What-If Preview (Recommended First)
+
+```powershell
+.\deploy.ps1 -WhatIf
+```
+
+```bash
+./deploy.sh config.toml --what-if
+```
+
+This runs Azure CLI what-if preview to validate and show planned resource changes without creating resources.
+
+#### Method 4: Azure Developer CLI
 
 ```bash
 azd up

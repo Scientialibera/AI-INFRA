@@ -8,7 +8,7 @@ metadata:
 # Infrastructure configuration
 infra:
   provider: bicep
-  path: infra
+  path: ../infra
   module: main
 
 # No services to deploy initially - this is just infrastructure

@@ -72,13 +72,18 @@ This project deploys a complete Azure AI Landing Zone infrastructure using:
 
 ```text
 repo-root/
-  azure.yaml                  # Azure Developer CLI configuration
-  config.toml                 # Your deployment configuration
-  config.example.toml         # Example configuration template
-  deploy.ps1                  # PowerShell deployment script
-  deploy.sh                   # Bash deployment script
-  validate.ps1                # Pre-deployment validation
   README.md                   # This file
+  .gitignore                  # Git ignore rules
+  azd/
+    azure.yaml                # Azure Developer CLI configuration
+  config/
+    config.toml               # Your local deployment configuration (gitignored)
+    config.example.toml       # Example configuration template
+  scripts/
+    deploy.ps1                # PowerShell deployment script
+    deploy.sh                 # Bash deployment script
+    validate.ps1              # Pre-deployment validation
+    generate-diagram.py       # Diagram generator
   infra/
     main.bicep                # Main orchestration template
     main.bicepparam           # Baseline Bicep parameter file for validate/what-if
@@ -108,17 +113,17 @@ repo-root/
 **TL;DR:**
 ```powershell
 # 1. Configure
-Copy-Item config.example.toml config.toml
-# Edit config.toml with your settings
+Copy-Item .\config\config.example.toml .\config\config.toml
+# Edit .\config\config.toml with your settings
 
 # 2. Deploy
-.\deploy.ps1
+.\scripts\deploy.ps1
 ```
 
 **Linux/Mac:**
 ```bash
-cp config.example.toml config.toml
-./deploy.sh
+cp ./config/config.example.toml ./config/config.toml
+./scripts/deploy.sh
 ```
 
 ---
@@ -471,7 +476,7 @@ The user-assigned managed identity for Container Apps needs access to all servic
 
 ## Admin User Permissions
 
-Each admin user (specified in `config.toml`) receives comprehensive access to all services. Admin emails are automatically resolved to Azure AD Object IDs during deployment.
+Each admin user (specified in `config/config.toml`) receives comprehensive access to all services. Admin emails are automatically resolved to Azure AD Object IDs during deployment.
 
 ### Resource Group Level
 
@@ -605,23 +610,23 @@ When VNet is enabled, all private DNS zones are linked to the VNet for proper na
 - All RBAC changes logged to Activity Log
 - Access patterns visible in Log Analytics
 - Regular review of assigned roles recommended
-- Unused admin accounts should be removed from config.toml
+- Unused admin accounts should be removed from `config/config.toml`
 
 ---
 
 ## Adding/Removing Permissions
 
 ### Add a New Admin User
-1. Add email to `config.toml`:
+1. Add email to `config/config.toml`:
    ```toml
    [admin]
    emails = ["existing@company.com", "new@company.com"]
    ```
-2. Redeploy with `.\deploy.ps1`
+2. Redeploy with `.\scripts\deploy.ps1`
 3. New user automatically gets all roles (resolved to Object ID)
 
 ### Remove an Admin User
-1. Remove email from `config.toml`
+1. Remove email from `config/config.toml`
 2. Redeploy - role assignments will be removed
 
 ### Grant Custom Permissions
@@ -774,10 +779,10 @@ $env:PATH = 'C:\Users\emili\AppData\Local\Microsoft\WinGet\Packages\Microsoft.Bi
 #### Method 1: PowerShell Script (Recommended)
 
 ```powershell
-.\deploy.ps1
+.\scripts\deploy.ps1
 ```
 
-Deploy multiple prefixes/environments in one run (configured in `config.toml`):
+Deploy multiple prefixes/environments in one run (configured in `config/config.toml`):
 
 ```toml
 [project]
@@ -788,37 +793,38 @@ resourceGroupName = "rg-myaiproject-{prefix}-{location}"
 #### Method 2: Bash Script
 
 ```bash
-./deploy.sh
+./scripts/deploy.sh
 ```
 
 #### Method 3: What-If Preview (Recommended First)
 
 ```powershell
-.\deploy.ps1 -WhatIf
+.\scripts\deploy.ps1 -WhatIf
 ```
 
 ```bash
-./deploy.sh config.toml --what-if
+./scripts/deploy.sh config/config.toml --what-if
 ```
 
-`deploy.sh` accepts positional arguments: `<config-file> [--what-if]`.
+`scripts/deploy.sh` accepts positional arguments: `<config-file> [--what-if]`.
 
 This runs Azure CLI what-if preview to validate and show planned resource changes without creating resources.
 
 #### Method 4: Azure Developer CLI (infra-first)
 
 ```bash
+cd azd
 azd provision
 ```
 
-Use `azd up` only when you add application services to `azure.yaml` and want the full provision + package + deploy workflow.
+Use `azd up` only when you add application services to `azd/azure.yaml` and want the full provision + package + deploy workflow.
 
 ### Generate Architecture Diagram
 
-Generate a diagram directly from `config.toml`:
+Generate a diagram directly from `config/config.toml`:
 
 ```powershell
-python .\generate-diagram.py --config .\config.toml --out-dir .\diagrams --name architecture
+python .\scripts\generate-diagram.py --config .\config\config.toml --out-dir .\diagrams --name architecture
 ```
 
 Outputs:
@@ -829,7 +835,7 @@ This supports mixed networking modes (for example, AI Search private endpoint on
 
 ### What Happens During Deployment
 
-1. **Configuration Loading**: Reads `config.toml`
+1. **Configuration Loading**: Reads `config/config.toml`
 2. **Email Resolution**: Converts admin emails to Object IDs
 3. **Region Testing**: Checks service availability per region
 4. **Region Selection**: Picks first available region
@@ -842,7 +848,7 @@ This supports mixed networking modes (for example, AI Search private endpoint on
 Before deploying, validate your configuration:
 
 ```powershell
-.\validate.ps1
+.\scripts\validate.ps1
 ```
 
 This checks:
@@ -898,7 +904,7 @@ This checks:
 
 ```
 Solution: 
-1. Add more regions to config.toml locations array
+1. Add more regions to `config/config.toml` locations array
 2. Disable services you don't need
 3. Check Azure region availability: https://azure.microsoft.com/global-infrastructure/services/
 ```
@@ -962,7 +968,7 @@ az monitor log-analytics query \
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test with `.\validate.ps1`
+4. Test with `.\scripts\validate.ps1`
 5. Deploy to a test environment
 6. Submit a pull request
 
@@ -970,7 +976,7 @@ az monitor log-analytics query \
 
 - Follow Bicep best practices
 - Add new services as separate modules
-- Update config.example.toml with new options
+- Update `config/config.example.toml` with new options
 - Document new parameters in this README
 - Update the Permissions Matrix section in README for RBAC changes
 

@@ -2,9 +2,13 @@
 # This script reads config.toml and deploys the infrastructure using Azure CLI
 
 param(
-    [string]$ConfigFile = "config.toml",
+    [string]$ConfigFile = "config/config.toml",
     [switch]$WhatIf
 )
+
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
+$configPath = if ([System.IO.Path]::IsPathRooted($ConfigFile)) { $ConfigFile } else { Join-Path $repoRoot $ConfigFile }
 
 # Check if Azure CLI is installed
 if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
@@ -66,8 +70,8 @@ with path.open('rb') as f:
     return $tomlJson | ConvertFrom-Json -AsHashtable
 }
 
-Write-Host "Loading configuration from $ConfigFile..." -ForegroundColor Cyan
-$config = Get-TomlConfig -Path $ConfigFile
+Write-Host "Loading configuration from $configPath..." -ForegroundColor Cyan
+$config = Get-TomlConfig -Path $configPath
 
 # Extract configuration values
 $projectName = $config.project.name
@@ -225,7 +229,7 @@ $bicepExe = Get-BicepExecutable
 $tempTemplateFile = [System.IO.Path]::ChangeExtension([System.IO.Path]::GetTempFileName(), '.json')
 
 Write-Host "`nCompiling Bicep template..." -ForegroundColor Cyan
-& $bicepExe build "infra/main.bicep" --outfile $tempTemplateFile
+& $bicepExe build (Join-Path $repoRoot "infra/main.bicep") --outfile $tempTemplateFile
 if ($LASTEXITCODE -ne 0) {
     Remove-Item -Path $tempTemplateFile -Force -ErrorAction SilentlyContinue
     exit $LASTEXITCODE

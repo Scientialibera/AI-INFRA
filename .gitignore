@@ -33,7 +33,7 @@ secrets/
 *.pfx
 
 # Local deployment config (keep untracked)
-config.toml
+config/config.toml
 
 # Generated diagrams
 diagrams/

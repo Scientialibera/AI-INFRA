@@ -2,10 +2,14 @@
 # This script validates the Bicep templates and configuration
 
 param(
-    [string]$ConfigFile = "config.toml",
+    [string]$ConfigFile = "config/config.toml",
     [string]$ResourceGroupName = "",
     [switch]$SkipDeploymentChecks
 )
+
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
+$configPath = if ([System.IO.Path]::IsPathRooted($ConfigFile)) { $ConfigFile } else { Join-Path $repoRoot $ConfigFile }
 
 Write-Host "Azure AI Landing Zone - Validation Script" -ForegroundColor Cyan
 Write-Host "==========================================`n" -ForegroundColor Cyan
@@ -47,11 +51,11 @@ try {
 # Validate config file exists
 Write-Host "`nValidating configuration..." -ForegroundColor Yellow
 
-if (-not (Test-Path $ConfigFile)) {
-    Write-Host " Config file not found: $ConfigFile" -ForegroundColor Red
+if (-not (Test-Path $configPath)) {
+    Write-Host " Config file not found: $configPath" -ForegroundColor Red
     exit 1
 } else {
-    Write-Host " Config file found: $ConfigFile" -ForegroundColor Green
+    Write-Host " Config file found: $configPath" -ForegroundColor Green
 }
 
 # Validate Bicep templates
@@ -80,14 +84,15 @@ $bicepFiles = @(
 
 $allValid = $true
 foreach ($bicepFile in $bicepFiles) {
-    if (-not (Test-Path $bicepFile)) {
+    $bicepPath = Join-Path $repoRoot $bicepFile
+    if (-not (Test-Path $bicepPath)) {
         Write-Host " Missing: $bicepFile" -ForegroundColor Red
         $allValid = $false
         continue
     }
 
     try {
-        $result = az bicep build --file $bicepFile --stdout 2>&1
+        $result = az bicep build --file $bicepPath --stdout 2>&1
         if ($LASTEXITCODE -eq 0) {
             Write-Host " Valid: $bicepFile" -ForegroundColor Green
         } else {
@@ -105,15 +110,15 @@ foreach ($bicepFile in $bicepFiles) {
 if (-not $SkipDeploymentChecks) {
     if ([string]::IsNullOrWhiteSpace($ResourceGroupName)) {
         Write-Host "`nSkipping deployment validate/what-if checks (no -ResourceGroupName provided)." -ForegroundColor Yellow
-    } elseif (-not (Test-Path "infra/main.bicepparam")) {
+    } elseif (-not (Test-Path (Join-Path $repoRoot "infra/main.bicepparam"))) {
         Write-Host "`nSkipping deployment validate/what-if checks (missing infra/main.bicepparam)." -ForegroundColor Yellow
     } else {
         Write-Host "`nRunning deployment validate..." -ForegroundColor Yellow
         try {
             az deployment group validate `
                 --resource-group $ResourceGroupName `
-                --template-file "infra/main.bicep" `
-                --parameters "infra/main.bicepparam" `
+                --template-file (Join-Path $repoRoot "infra/main.bicep") `
+                --parameters (Join-Path $repoRoot "infra/main.bicepparam") `
                 --only-show-errors `
                 --output none
             if ($LASTEXITCODE -eq 0) {
@@ -132,8 +137,8 @@ if (-not $SkipDeploymentChecks) {
         try {
             az deployment group what-if `
                 --resource-group $ResourceGroupName `
-                --template-file "infra/main.bicep" `
-                --parameters "infra/main.bicepparam" `
+                --template-file (Join-Path $repoRoot "infra/main.bicep") `
+                --parameters (Join-Path $repoRoot "infra/main.bicepparam") `
                 --result-format ResourceIdOnly `
                 --output none
             if ($LASTEXITCODE -eq 0) {
@@ -155,9 +160,9 @@ Write-Host "`n==========================================`n" -ForegroundColor Cya
 if ($allValid) {
     Write-Host " All validations passed!" -ForegroundColor Green
     Write-Host "`nYou can now deploy using:" -ForegroundColor Cyan
-    Write-Host "  .\deploy.ps1" -ForegroundColor Yellow
+    Write-Host "  .\scripts\deploy.ps1" -ForegroundColor Yellow
     Write-Host "Or preview changes with:" -ForegroundColor Cyan
-    Write-Host "  .\deploy.ps1 -WhatIf" -ForegroundColor Yellow
+    Write-Host "  .\scripts\deploy.ps1 -WhatIf" -ForegroundColor Yellow
 } else {
     Write-Host " Validation failed - please fix errors above" -ForegroundColor Red
     exit 1

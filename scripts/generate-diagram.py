@@ -217,7 +217,7 @@ def generate_summary(config: dict[str, Any]) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate architecture diagram files from config.toml.")
-    parser.add_argument("--config", default="config.toml", help="Path to TOML config file")
+    parser.add_argument("--config", default="config/config.toml", help="Path to TOML config file")
     parser.add_argument("--out-dir", default="diagrams", help="Output directory")
     parser.add_argument("--name", default="architecture", help="Base output name")
     args = parser.parse_args()
@@ -244,4 +244,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

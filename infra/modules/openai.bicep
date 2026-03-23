@@ -38,17 +38,23 @@ resource openAIDeployments 'Microsoft.CognitiveServices/accounts/deployments@202
   parent: openAI
   name: deployment.name
   sku: {
-    name: 'Standard'
+    name: contains(deployment, 'sku') ? deployment.sku : 'Standard'
     capacity: deployment.capacity
   }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: deployment.model
-      version: deployment.version
-    }
-    raiPolicyName: contains(deployment, 'raiPolicyName') ? deployment.raiPolicyName : contentFilterPolicyName
-  }
+  properties: union(
+    {
+      model: {
+        format: 'OpenAI'
+        name: deployment.model
+        version: deployment.version
+      }
+    },
+    empty(contains(deployment, 'raiPolicyName') ? deployment.raiPolicyName : contentFilterPolicyName)
+      ? {}
+      : {
+          raiPolicyName: contains(deployment, 'raiPolicyName') ? deployment.raiPolicyName : contentFilterPolicyName
+        }
+  )
 }]
 
 // Private Endpoint for OpenAI (if VNet enabled)

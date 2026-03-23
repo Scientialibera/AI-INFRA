@@ -3,6 +3,9 @@
 param location string
 param dataLakeName string
 param sku string
+param containers array = [
+  'data'
+]
 param enableVNet bool
 param privateEndpointSubnetId string
 param vnetId string = ''
@@ -63,14 +66,14 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01'
   }
 }
 
-// Default container
-resource container 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
+// Configurable containers
+resource containerResources 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = [for containerName in containers: {
   parent: blobService
-  name: 'data'
+  name: containerName
   properties: {
     publicAccess: 'None'
   }
-}
+}]
 
 // Private Endpoint for Blob (if VNet enabled)
 resource privateEndpoint 'Microsoft.Network/privateEndpoints@2023-05-01' = if (enableVNet) {

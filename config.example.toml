@@ -11,11 +11,14 @@ name = "myaiproject"
 # The deployment will try each region in order until it finds one that works
 # Common regions: eastus, westus2, westeurope, northeurope, southcentralus, centralus
 locations = ["eastus", "westus2", "westeurope"]
-# Environment (dev, staging, prod)
+# Deployment prefixes/environments. One prefix = one deployment set.
+# Example: ["dev", "uat", "prod"] deploys all three in one run.
+prefixes = ["dev"]
+# Backward-compatible single environment (used when prefixes/prefix is not set)
 environment = "dev"
 # Resource group name (will be created if it doesn't exist)
-# Note: {location} will be replaced with the successfully deployed region
-resourceGroupName = "rg-myaiproject-dev-{location}"
+# Supported placeholders: {prefix}, {environment}, {location}
+resourceGroupName = "rg-myaiproject-{prefix}-{location}"
 
 # =============================================================================
 # ADMIN USERS
@@ -50,6 +53,7 @@ apimSubnetPrefix = "10.0.4.0/27"
 # =============================================================================
 [services.openai]
 enabled = true
+privateEndpointEnabled = true
 # SKU: S0 (standard)
 sku = "S0"
 # Content filter policy name (default, or custom policy name)
@@ -57,9 +61,8 @@ contentFilterPolicy = "default"
 # Deployments to create
 # Each deployment can have an optional raiPolicyName for content filtering
 deployments = [
-    { name = "gpt-4", model = "gpt-4", version = "2024-05-13", capacity = 10 },
-    { name = "gpt-35-turbo", model = "gpt-35-turbo", version = "0613", capacity = 10 },
-    { name = "text-embedding-ada-002", model = "text-embedding-ada-002", version = "2", capacity = 10 }
+    { name = "gpt-5-mini", model = "gpt-5-mini", version = "2025-08-07", sku = "GlobalStandard", capacity = 150 },
+    { name = "text-embedding-3-small", model = "text-embedding-3-small", version = "1", capacity = 10 }
 ]
 
 # =============================================================================
@@ -67,6 +70,7 @@ deployments = [
 # =============================================================================
 [services.cosmosdb]
 enabled = true
+privateEndpointEnabled = true
 # Enable NoSQL API (document database)
 enableNoSQL = true
 # Enable Gremlin API (graph database)
@@ -85,16 +89,20 @@ additionalRegions = []
 # =============================================================================
 [services.datalake]
 enabled = true
+privateEndpointEnabled = true
 # SKU: Standard_LRS, Standard_GRS, Standard_RAGRS, Standard_ZRS, Premium_LRS, Premium_ZRS
 sku = "Standard_LRS"
 # Enable hierarchical namespace (required for Data Lake Gen2)
 isHnsEnabled = true
+# Containers to create
+containers = ["data", "raw", "curated"]
 
 # =============================================================================
 # SQL DATABASE
 # =============================================================================
 [services.sqldb]
 enabled = true
+privateEndpointEnabled = true
 # SQL Server admin username
 adminUsername = "sqladmin"
 # SKU: Basic, S0, S1, S2, S3, P1, P2, P4, P6, P11, P15
@@ -112,6 +120,7 @@ allowedIpRules = []
 # =============================================================================
 [services.aisearch]
 enabled = true
+privateEndpointEnabled = true
 # SKU: free, basic, standard, standard2, standard3, storage_optimized_l1, storage_optimized_l2
 sku = "standard"
 # Number of replicas (affects availability and query throughput)
@@ -140,6 +149,7 @@ zoneRedundant = false
 # =============================================================================
 [services.containerRegistry]
 enabled = true
+privateEndpointEnabled = true
 # SKU: Basic, Standard, Premium (Premium required for private endpoints and geo-replication)
 sku = "Premium"
 # Enable admin user (not recommended for production)
@@ -152,6 +162,7 @@ geoReplicationLocations = []
 # =============================================================================
 [services.keyVault]
 enabled = true
+privateEndpointEnabled = true
 # SKU: standard, premium
 sku = "standard"
 # Enable RBAC authorization (recommended)
@@ -194,6 +205,7 @@ enableWaf = false
 # =============================================================================
 [services.redis]
 enabled = false
+privateEndpointEnabled = true
 # SKU: Basic, Standard, Premium
 sku = "Standard"
 # Capacity (size): 0-6 for Basic/Standard, 1-5 for Premium
@@ -221,3 +233,4 @@ CostCenter = "Engineering"
 # Required tags (if policy is enabled)
 reason = "AI Landing Zone Infrastructure"
 purpose = "Enterprise AI Platform"
+

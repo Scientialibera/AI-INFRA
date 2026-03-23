@@ -53,27 +53,41 @@ param sqlSubnetPrefix string = '10.0.3.0/24'
 
 @description('Enable OpenAI Service')
 param enableOpenAI bool = true
+@description('Enable private endpoint for OpenAI when VNet is enabled')
+param openAIPrivateEndpointEnabled bool = true
 
 @description('Enable Cosmos DB')
 param enableCosmosDB bool = true
+@description('Enable private endpoint for Cosmos DB when VNet is enabled')
+param cosmosPrivateEndpointEnabled bool = true
 
 @description('Enable Data Lake Storage')
 param enableDataLake bool = true
+@description('Enable private endpoint for Data Lake when VNet is enabled')
+param dataLakePrivateEndpointEnabled bool = true
 
 @description('Enable SQL Database')
 param enableSQLDB bool = true
+@description('Enable private endpoint for SQL when VNet is enabled')
+param sqlPrivateEndpointEnabled bool = true
 
 @description('Enable AI Search')
 param enableAISearch bool = true
+@description('Enable private endpoint for AI Search when VNet is enabled')
+param aiSearchPrivateEndpointEnabled bool = true
 
 @description('Enable Container Apps')
 param enableContainerApps bool = true
 
 @description('Enable Container Registry')
 param enableContainerRegistry bool = true
+@description('Enable private endpoint for Container Registry when VNet is enabled')
+param containerRegistryPrivateEndpointEnabled bool = true
 
 @description('Enable Key Vault')
 param enableKeyVault bool = true
+@description('Enable private endpoint for Key Vault when VNet is enabled')
+param keyVaultPrivateEndpointEnabled bool = true
 
 @description('Enable Monitoring')
 param enableMonitoring bool = true
@@ -86,6 +100,8 @@ param enableFrontDoor bool = false
 
 @description('Enable Redis Cache')
 param enableRedis bool = false
+@description('Enable private endpoint for Redis when VNet is enabled')
+param redisPrivateEndpointEnabled bool = true
 
 @description('Enable Azure Policy for required tags')
 param enablePolicy bool = false
@@ -184,6 +200,11 @@ param containerRegistryGeoReplicationLocations array = []
 @description('Data Lake Storage SKU')
 param dataLakeSku string = 'Standard_LRS'
 
+@description('Data Lake container names to create')
+param dataLakeContainers array = [
+  'data'
+]
+
 @description('Data Lake storage account name (lowercase alphanumeric, 3-24 characters)')
 @minLength(3)
 @maxLength(24)
@@ -273,6 +294,18 @@ var apimName = '${namingPrefix}-apim'
 var frontDoorName = '${namingPrefix}-fd'
 var wafPolicyName = '${namingPrefix}-waf'
 var redisName = '${namingPrefix}-redis'
+var openAIPeEnabled = enableVNet && enableOpenAI && openAIPrivateEndpointEnabled
+var cosmosPeEnabled = enableVNet && enableCosmosDB && cosmosPrivateEndpointEnabled
+var dataLakePeEnabled = enableVNet && enableDataLake && dataLakePrivateEndpointEnabled
+var sqlPeEnabled = enableVNet && enableSQLDB && sqlPrivateEndpointEnabled
+var aiSearchPeEnabled = enableVNet && enableAISearch && aiSearchPrivateEndpointEnabled
+var containerRegistryPeEnabled = enableVNet && enableContainerRegistry && containerRegistryPrivateEndpointEnabled && toLower(containerRegistrySku) == 'premium'
+var keyVaultPeEnabled = enableVNet && enableKeyVault && keyVaultPrivateEndpointEnabled
+var redisPeEnabled = enableVNet && enableRedis && redisPrivateEndpointEnabled
+var needsPrivateEndpointSubnet = openAIPeEnabled || cosmosPeEnabled || dataLakePeEnabled || sqlPeEnabled || aiSearchPeEnabled || containerRegistryPeEnabled || keyVaultPeEnabled || redisPeEnabled
+var needsContainerAppsSubnet = enableContainerApps
+var needsSqlSubnet = enableSQLDB
+var needsApimSubnet = enableAPIM
 
 // Managed Identity names
 var containerAppsMIName = '${namingPrefix}-containerapp-mi'
@@ -288,6 +321,10 @@ module networking './modules/networking.bicep' = if (enableVNet) {
     privateEndpointSubnetPrefix: privateEndpointSubnetPrefix
     sqlSubnetPrefix: sqlSubnetPrefix
     apimSubnetPrefix: apimSubnetPrefix
+    enableContainerAppsSubnet: needsContainerAppsSubnet
+    enablePrivateEndpointSubnet: needsPrivateEndpointSubnet
+    enableSqlSubnet: needsSqlSubnet
+    enableApimSubnet: needsApimSubnet
     tags: tags
   }
 }
@@ -320,9 +357,9 @@ module keyVault './modules/keyvault.bicep' = if (enableKeyVault) {
   params: {
     location: location
     keyVaultName: keyVaultName
-    enableVNet: enableVNet
-    privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
-    vnetId: enableVNet ? networking.outputs.vnetId : ''
+    enableVNet: keyVaultPeEnabled
+    privateEndpointSubnetId: keyVaultPeEnabled ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: keyVaultPeEnabled ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
     skuName: keyVaultSku
     softDeleteRetentionInDays: keyVaultSoftDeleteRetentionDays
@@ -337,9 +374,9 @@ module openAI './modules/openai.bicep' = if (enableOpenAI) {
     location: location
     openAIName: openAIName
     deployments: openAIDeployments
-    enableVNet: enableVNet
-    privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
-    vnetId: enableVNet ? networking.outputs.vnetId : ''
+    enableVNet: openAIPeEnabled
+    privateEndpointSubnetId: openAIPeEnabled ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: openAIPeEnabled ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
     contentFilterPolicyName: openAIContentFilterPolicy
     tags: tags
@@ -358,9 +395,9 @@ module cosmosDB './modules/cosmosdb.bicep' = if (enableCosmosDB) {
     enableServerless: cosmosEnableServerless
     enableAnalyticalStorage: cosmosEnableAnalyticalStorage
     additionalLocations: cosmosAdditionalRegions
-    enableVNet: enableVNet
-    privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
-    vnetId: enableVNet ? networking.outputs.vnetId : ''
+    enableVNet: cosmosPeEnabled
+    privateEndpointSubnetId: cosmosPeEnabled ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: cosmosPeEnabled ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
     tags: tags
   }
@@ -373,9 +410,10 @@ module dataLake './modules/datalake.bicep' = if (enableDataLake) {
     location: location
     dataLakeName: dataLakeName
     sku: dataLakeSku
-    enableVNet: enableVNet
-    privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
-    vnetId: enableVNet ? networking.outputs.vnetId : ''
+    containers: dataLakeContainers
+    enableVNet: dataLakePeEnabled
+    privateEndpointSubnetId: dataLakePeEnabled ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: dataLakePeEnabled ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
     tags: tags
   }
@@ -390,9 +428,9 @@ module sqlDB './modules/sqldb.bicep' = if (enableSQLDB) {
     sqlDatabaseName: sqlDatabaseName
     sqlAdminUsername: sqlAdminUsername
     databaseSku: sqlDatabaseSku
-    enableVNet: enableVNet
-    privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
-    vnetId: enableVNet ? networking.outputs.vnetId : ''
+    enableVNet: sqlPeEnabled
+    privateEndpointSubnetId: sqlPeEnabled ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: sqlPeEnabled ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
     containerAppsMIPrincipalId: identities.outputs.containerAppsMIPrincipalId
     allowedIpRules: sqlAllowedIpRules
@@ -415,9 +453,9 @@ module aiSearch './modules/aisearch.bicep' = if (enableAISearch) {
     replicaCount: aiSearchReplicaCount
     partitionCount: aiSearchPartitionCount
     semanticSearchTier: aiSearchSemanticTier
-    enableVNet: enableVNet
-    privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
-    vnetId: enableVNet ? networking.outputs.vnetId : ''
+    enableVNet: aiSearchPeEnabled
+    privateEndpointSubnetId: aiSearchPeEnabled ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: aiSearchPeEnabled ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
     tags: tags
   }
@@ -430,9 +468,9 @@ module containerRegistry './modules/containerregistry.bicep' = if (enableContain
     location: location
     containerRegistryName: containerRegistryName
     sku: containerRegistrySku
-    enableVNet: enableVNet
-    privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
-    vnetId: enableVNet ? networking.outputs.vnetId : ''
+    enableVNet: containerRegistryPeEnabled
+    privateEndpointSubnetId: containerRegistryPeEnabled ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: containerRegistryPeEnabled ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
     geoReplicationLocations: containerRegistryGeoReplicationLocations
     tags: tags
@@ -518,9 +556,9 @@ module redis './modules/redis.bicep' = if (enableRedis) {
     redisName: redisName
     sku: redisSku
     skuCapacity: redisCapacity
-    enableVNet: enableVNet
-    privateEndpointSubnetId: enableVNet ? networking.outputs.privateEndpointSubnetId : ''
-    vnetId: enableVNet ? networking.outputs.vnetId : ''
+    enableVNet: redisPeEnabled
+    privateEndpointSubnetId: redisPeEnabled ? networking.outputs.privateEndpointSubnetId : ''
+    vnetId: redisPeEnabled ? networking.outputs.vnetId : ''
     containerAppsMIObjectId: identities.outputs.containerAppsMIObjectId
     tags: tags
   }

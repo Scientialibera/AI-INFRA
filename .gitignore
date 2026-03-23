@@ -31,3 +31,9 @@ secrets/
 *.pem
 *.key
 *.pfx
+
+# Local deployment config (keep untracked)
+config.toml
+
+# Generated diagrams
+diagrams/

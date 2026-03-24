@@ -82,7 +82,6 @@ repo-root/
   scripts/
     deploy.ps1                # PowerShell deployment script
     deploy.sh                 # Bash deployment script
-    validate.ps1              # Pre-deployment validation
     generate-diagram.py       # Diagram generator
   infra/
     main.bicep                # Main orchestration template
@@ -843,20 +842,6 @@ This supports mixed networking modes (for example, AI Search private endpoint on
 6. **Bicep Deployment**: Deploys all enabled modules
 7. **Output Display**: Shows endpoints and connection info
 
-### Validation
-
-Before deploying, validate your configuration:
-
-```powershell
-.\scripts\validate.ps1
-```
-
-This checks:
-- Configuration syntax
-- Required fields
-- Azure login status
-- Permission levels
-
 ---
 
 ## Cost Estimation
@@ -968,8 +953,7 @@ az monitor log-analytics query \
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test with `.\scripts\validate.ps1`
-5. Deploy to a test environment
+4. Deploy to a test environment with `.\scripts\deploy.ps1 -WhatIf`
 6. Submit a pull request
 
 ### Development Guidelines

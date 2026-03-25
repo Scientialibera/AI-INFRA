@@ -57,7 +57,7 @@ privateEndpointEnabled = true
 # SKU: S0 (standard)
 sku = "S0"
 # Content filter policy name (default, or custom policy name)
-contentFilterPolicy = "default"
+contentFilterPolicy = ""
 # Deployments to create
 # Each deployment can have an optional raiPolicyName for content filtering
 deployments = [

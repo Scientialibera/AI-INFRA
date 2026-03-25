@@ -217,6 +217,11 @@ function Get-BicepExecutable {
         return $cmd.Source
     }
 
+    $azCliBicep = Join-Path $env:USERPROFILE '.azure\bin\bicep.exe'
+    if (Test-Path $azCliBicep) {
+        return $azCliBicep
+    }
+
     $wingetBicep = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages\Microsoft.Bicep_Microsoft.Winget.Source_8wekyb3d8bbwe\bicep.exe'
     if (Test-Path $wingetBicep) {
         return $wingetBicep

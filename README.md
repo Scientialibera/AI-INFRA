@@ -80,12 +80,12 @@ repo-root/
     config.toml               # Your local deployment configuration (gitignored)
     config.example.toml       # Example configuration template
   scripts/
-    deploy.ps1                # PowerShell deployment script
-    deploy.sh                 # Bash deployment script
+    deploy.ps1                # PowerShell deployment script (supports --WhatIf)
+    deploy.sh                 # Bash deployment script (supports --what-if)
     generate-diagram.py       # Diagram generator
   infra/
     main.bicep                # Main orchestration template
-    main.bicepparam           # Baseline Bicep parameter file for validate/what-if
+    main.bicepparam           # Baseline Bicep parameter file for what-if
     modules/
       aisearch.bicep          # Azure AI Search
       apim.bicep              # API Management (NEW)
@@ -842,6 +842,20 @@ This supports mixed networking modes (for example, AI Search private endpoint on
 6. **Bicep Deployment**: Deploys all enabled modules
 7. **Output Display**: Shows endpoints and connection info
 
+### Validation
+
+Before deploying, preview planned changes with the `--WhatIf` flag:
+
+```powershell
+.\scripts\deploy.ps1 -WhatIf
+```
+
+```bash
+./scripts/deploy.sh config/config.toml --what-if
+```
+
+This runs Azure Resource Manager what-if to show what would be created, modified, or deleted without actually deploying.
+
 ---
 
 ## Cost Estimation
@@ -953,7 +967,8 @@ az monitor log-analytics query \
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Deploy to a test environment with `.\scripts\deploy.ps1 -WhatIf`
+4. Test with `.\scripts\deploy.ps1 -WhatIf`
+5. Deploy to a test environment
 6. Submit a pull request
 
 ### Development Guidelines

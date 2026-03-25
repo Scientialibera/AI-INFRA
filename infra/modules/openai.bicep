@@ -116,12 +116,12 @@ resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneG
   }
 }
 
-// RBAC: Grant Container Apps MI access to OpenAI
-resource openAIUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(openAI.id, containerAppsMIObjectId, 'Cognitive Services OpenAI User')
+// RBAC: Grant Container Apps MI access to OpenAI (Contributor includes responses/write for the Responses API)
+resource openAIContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(openAI.id, containerAppsMIObjectId, 'Cognitive Services OpenAI Contributor')
   scope: openAI
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd') // Cognitive Services OpenAI User
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a001fd3d-188f-4b5d-821b-7da978bf7442') // Cognitive Services OpenAI Contributor
     principalId: containerAppsMIObjectId
     principalType: 'ServicePrincipal'
   }
